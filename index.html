@@ -212,7 +212,6 @@ select option { background:#1e1e1e; }
 
 <main id="app"></main>
 
-<!-- MODAL SELECTOR ESPECIALIDAD -->
 <div class="overlay" id="modal-spec">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -222,7 +221,15 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
-<!-- MODAL NUEVA SESIÓN -->
+<div class="overlay" id="modal-detalle">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-detalle-title">Historial</div>
+    <div id="modal-detalle-content" class="log-list" style="margin-bottom: 14px;"></div>
+    <button class="btn-secondary" onclick="closeModal('modal-detalle')">Cerrar</button>
+  </div>
+</div>
+
 <div class="overlay" id="modal-sesion">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -258,7 +265,6 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
-<!-- MODAL CONFIG -->
 <div class="overlay" id="modal-config">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -466,7 +472,7 @@ function vistaResumen() {
   </div>
 
   <div>
-    <div class="sec-title">Por especialidad</div>
+    <div class="sec-title">Por especialidad (tocá para ver detalles)</div>
     <div class="card" style="cursor:default">
       <div class="progress-row">`;
 
@@ -474,7 +480,7 @@ function vistaResumen() {
     const v = bySpec[e.id];
     const pct = Math.round(v.min / maxMin * 100);
     h += `
-      <div class="prog-item">
+      <div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer; padding: 4px 0;">
         <div class="prog-head">
           <div class="prog-name">${e.ico} ${e.nombre}</div>
           <div class="prog-val">${v.count} ses · ${v.min} min</div>
@@ -496,6 +502,31 @@ function vistaResumen() {
     h += `</div></div>`;
   }
   return h;
+}
+
+/* ─── DETALLE POR ESPECIALIDAD (CRONOLÓGICO) ─── */
+function verDetalleEspecialidad(specId) {
+  const e = SPECS.find(x => x.id === specId);
+  document.getElementById('modal-detalle-title').innerHTML = `${e.ico} Historial de ${e.nombre}`;
+  
+  // Filtramos para quedarnos solo con las sesiones de esta especialidad
+  let sesEspec = sesiones.filter(s => s.especId === specId);
+  
+  // Las ordenamos temporalmente (de la más vieja a la más nueva)
+  sesEspec.sort((a, b) => {
+    const tiempoA = a.fecha + a.hora;
+    const tiempoB = b.fecha + b.hora;
+    return tiempoA.localeCompare(tiempoB); 
+  });
+  
+  const cont = document.getElementById('modal-detalle-content');
+  if(sesEspec.length === 0) {
+     cont.innerHTML = '<div class="empty-state">No hay registros para esta especialidad.</div>';
+  } else {
+     cont.innerHTML = sesEspec.map(htmlLogItem).join('');
+  }
+  
+  openModal('modal-detalle');
 }
 
 /* ─── LOG ITEM ─── */
