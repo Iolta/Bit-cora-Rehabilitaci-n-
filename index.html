@@ -86,6 +86,8 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .spec-to     { border-color:#c084fc33; } .spec-to.active-spec     { border-color:var(--purple); }
 .spec-enf    { border-color:#facc1533; } .spec-enf.active-spec    { border-color:var(--yellow); }
 .spec-cir    { border-color:#f8717133; } .spec-cir.active-spec    { border-color:var(--red); }
+.spec-nut    { border-color:#fb923c33; } .spec-nut.active-spec    { border-color:var(--orange); }
+.spec-med    { border-color:#e2e8f033; } .spec-med.active-spec    { border-color:#e2e8f0; }
 
 /* STATS */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -226,14 +228,15 @@ select option { background:#1e1e1e; }
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-sesion-title">Nueva Sesión</div>
 
-    <label>Profesional</label>
-    <select id="sel-prof">
-      <option value="">— Seleccionar profesional —</option>
-    </select>
+    <label>Profesionales</label>
+    <div class="pill-row" id="prof-pills"></div>
 
-    <label>Acción / Actividad</label>
+    <label>Acción / Actividad · seleccioná una o más</label>
     <div class="pill-row" id="action-pills"></div>
-    <input id="custom-action" placeholder="Otra acción (escribir)…" style="margin-top:6px">
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <input id="custom-action" placeholder="Nueva acción (escribir y agregar)…" style="flex:1">
+      <button onclick="agregarAccionPersonalizada()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0">+</button>
+    </div>
 
     <label>Duración</label>
     <div class="pill-row" id="dur-pills">
@@ -278,11 +281,16 @@ const SPECS = [
     acciones:['Curación traqueotomía','Aspiración de secreciones','Cambio de cánula','Signos vitales','Administración de medicación','Higiene general','Control de herida quirúrgica','Humidificación'] },
   { id:'cir',   nombre:'Cirugía',             ico:'🏥', css:'spec-cir',   color:'#f87171',
     acciones:['Revisión de herida','Indicaciones post-op','Control de evolución','Ajuste de tratamiento','Consulta de urgencia','Planificación próxima etapa','Evaluación de decanulación'] },
+  { id:'nut',   nombre:'Nutrición',            ico:'🥗', css:'spec-nut',   color:'#fb923c',
+    acciones:['Evaluación nutricional','Plan alimentario','Control de peso','Ajuste de dieta','Evaluación de deglución segura','Suplementación','Control de hidratación'] },
+  { id:'med',   nombre:'Medicina General',     ico:'🩺', css:'spec-med',   color:'#e2e8f0',
+    acciones:['Consulta de evolución','Control de signos vitales','Ajuste de medicación','Evaluación respiratoria','Indicaciones generales','Alta parcial','Interconsulta'] },
 ];
 
 /* ─── ESTADO ─── */
 let sesiones = [];
 let profesionales = {};
+let accionesPersonalizadas = {};
 let specActual = null;
 let durActual = null;
 
@@ -293,13 +301,17 @@ function cargar() {
       const d = JSON.parse(raw);
       sesiones = d.sesiones || [];
       profesionales = d.profesionales || {};
+      accionesPersonalizadas = d.accionesPersonalizadas || {};
     }
   } catch(e) {}
-  SPECS.forEach(e => { if (!profesionales[e.id]) profesionales[e.id] = []; });
+  SPECS.forEach(e => {
+    if (!profesionales[e.id]) profesionales[e.id] = [];
+    if (!accionesPersonalizadas[e.id]) accionesPersonalizadas[e.id] = [];
+  });
 }
 
 function guardar() {
-  localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales }));
+  localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas }));
 }
 
 /* ─── TAB ─── */
@@ -386,7 +398,10 @@ function vistaHistorial() {
   });
 
   const mesesCortos = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  let h = '';
+  let h = `
+    <button class="btn-secondary" onclick="exportarCSV()" style="display:flex;align-items:center;justify-content:center;gap:8px">
+      📥 Exportar historial CSV
+    </button>`;
   Object.entries(porFecha).forEach(([fecha, arr]) => {
     const [y,m,d] = fecha.split('-');
     const lbl = `${parseInt(d)} ${mesesCortos[parseInt(m)-1]} ${y}`;
@@ -399,6 +414,26 @@ function vistaHistorial() {
       <div class="log-list" style="margin-bottom:6px">${arr.map(htmlLogItem).join('')}</div>`;
   });
   return h;
+}
+
+function exportarCSV() {
+  if (sesiones.length === 0) { alert('No hay sesiones para exportar.'); return; }
+  const header = ['Fecha','Hora','Especialidad','Profesionales','Acciones','Duración (min)','Notas'];
+  const rows = sesiones.map(s => {
+    const e = SPECS.find(x => x.id === s.especId);
+    const profs = s.profesionales && s.profesionales.length > 0
+      ? s.profesionales.join(' / ')
+      : (s.profesional || '');
+    return [
+      s.fecha, s.hora, e.nombre, profs, s.accion, s.duracion, s.notas || ''
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `bitacora-rehab-${keyHoy()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 /* ─── VISTA RESUMEN ─── */
@@ -415,236 +450,4 @@ function vistaResumen() {
   let h = `
   <div style="font-size:22px;font-weight:700">Resumen general</div>
 
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Total sesiones</div><div class="stat-value" style="color:var(--green)">${total}</div><div class="stat-sub">registradas</div></div>
-    <div class="stat-card"><div class="stat-label">Tiempo total</div><div class="stat-value" style="color:var(--blue)">${totalMin}</div><div class="stat-sub">minutos</div></div>
-    <div class="stat-card"><div class="stat-label">Días activos</div><div class="stat-value" style="color:var(--purple)">${dias}</div><div class="stat-sub">con actividad</div></div>
-    <div class="stat-card"><div class="stat-label">Prom. diario</div><div class="stat-value" style="color:var(--yellow)">${dias > 0 ? Math.round(totalMin/dias) : 0}</div><div class="stat-sub">min/día</div></div>
-  </div>
-
-  <div>
-    <div class="sec-title">Por especialidad</div>
-    <div class="card" style="cursor:default">
-      <div class="progress-row">`;
-
-  SPECS.forEach(e => {
-    const v = bySpec[e.id];
-    const pct = Math.round(v.min / maxMin * 100);
-    h += `
-      <div class="prog-item">
-        <div class="prog-head">
-          <div class="prog-name">${e.ico} ${e.nombre}</div>
-          <div class="prog-val">${v.count} ses · ${v.min} min</div>
-        </div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${e.color}"></div></div>
-      </div>`;
-  });
-
-  h += `</div></div></div>`;
-
-  // profesionales frecuentes
-  const profCnt = {};
-  sesiones.forEach(s => { if (s.profesional) profCnt[s.profesional] = (profCnt[s.profesional]||0)+1; });
-  const top = Object.entries(profCnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  if (top.length > 0) {
-    h += `<div><div class="sec-title">Profesionales frecuentes</div><div class="log-list">`;
-    top.forEach(([n,c]) => {
-      h += `<div class="card" style="cursor:default;display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;font-weight:600">${n}</div><div style="font-size:13px;color:var(--green);font-weight:700">${c} ses.</div></div>`;
-    });
-    h += `</div></div>`;
-  }
-  return h;
-}
-
-/* ─── LOG ITEM ─── */
-function htmlLogItem(s) {
-  const e = SPECS.find(x => x.id === s.especId);
-  return `
-    <div class="log-item">
-      <div class="log-ico">${e.ico}</div>
-      <div class="log-body">
-        <div class="log-head">
-          <div class="log-spec" style="color:${e.color}">${e.nombre}</div>
-          <div class="log-time">${s.hora}</div>
-        </div>
-        ${s.profesional ? `<div class="log-prof">${s.profesional}</div>` : ''}
-        <div class="log-action">${s.accion}</div>
-        <div class="log-dur">⏱ ${s.duracion} min</div>
-        ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
-      </div>
-      <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
-    </div>`;
-}
-
-function borrarSesion(id) {
-  if (!confirm('¿Eliminar esta sesión?')) return;
-  sesiones = sesiones.filter(s => s.id !== id);
-  guardar(); render();
-}
-
-/* ─── MODAL SELECTOR ESPECIALIDAD ─── */
-function abrirSelectorSpec() {
-  const grid = document.getElementById('spec-grid-picker');
-  grid.innerHTML = SPECS.map(e => `
-    <div class="spec-card ${e.css}" onclick="pickSpec('${e.id}')">
-      <div class="spec-ico">${e.ico}</div>
-      <div class="spec-name">${e.nombre}</div>
-    </div>`).join('');
-  openModal('modal-spec');
-  // reset nav
-  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
-  if (tabActual === 'nueva') { tabActual = 'hoy'; render(); }
-}
-
-function pickSpec(id) {
-  closeModal('modal-spec');
-  abrirSesion(id);
-}
-
-/* ─── MODAL NUEVA SESIÓN ─── */
-function abrirSesion(specId) {
-  specActual = specId;
-  durActual = null;
-  const e = SPECS.find(x => x.id === specId);
-
-  document.getElementById('modal-sesion-title').textContent = `${e.ico} ${e.nombre}`;
-
-  // profesionales
-  const sel = document.getElementById('sel-prof');
-  sel.innerHTML = '<option value="">— Seleccionar profesional —</option>';
-  const profs = profesionales[specId] || [];
-  if (profs.length === 0) {
-    sel.innerHTML += '<option value="__sin">Sin profesional asignado</option>';
-  } else {
-    profs.forEach(p => { sel.innerHTML += `<option value="${p}">${p}</option>`; });
-    sel.innerHTML += '<option value="__sin">Otro / Sin asignar</option>';
-  }
-
-  // acciones
-  const pills = document.getElementById('action-pills');
-  pills.innerHTML = e.acciones.map(a => `<span class="pill" onclick="selAccion(this)">${a}</span>`).join('');
-
-  // reset
-  document.getElementById('custom-action').value = '';
-  document.getElementById('custom-dur').value = '';
-  document.getElementById('session-notes').value = '';
-  document.querySelectorAll('#dur-pills .pill').forEach(p => p.classList.remove('sel'));
-
-  openModal('modal-sesion');
-}
-
-function selAccion(el) {
-  document.querySelectorAll('#action-pills .pill').forEach(p => p.classList.remove('sel'));
-  el.classList.add('sel');
-  document.getElementById('custom-action').value = '';
-}
-
-function selDur(el, val) {
-  document.querySelectorAll('#dur-pills .pill').forEach(p => p.classList.remove('sel'));
-  el.classList.add('sel');
-  durActual = val;
-  document.getElementById('custom-dur').value = '';
-}
-
-function guardarSesion() {
-  const prof = document.getElementById('sel-prof').value;
-  const pillSel = document.querySelector('#action-pills .pill.sel');
-  const accion = pillSel ? pillSel.textContent : document.getElementById('custom-action').value.trim();
-  const durCustom = document.getElementById('custom-dur').value;
-  const dur = parseInt(durActual || durCustom || '0');
-  const notas = document.getElementById('session-notes').value.trim();
-
-  if (!accion) { alert('Seleccioná o escribí una acción.'); return; }
-  if (!dur || dur < 1) { alert('Indicá la duración de la sesión.'); return; }
-
-  sesiones.push({
-    id: Date.now(),
-    fecha: keyHoy(),
-    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
-    especId: specActual,
-    profesional: (prof && prof !== '__sin') ? prof : null,
-    accion,
-    duracion: dur,
-    notas: notas || null,
-  });
-
-  guardar();
-  closeModal('modal-sesion');
-  tabActual = 'hoy';
-  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
-  render();
-}
-
-/* ─── CONFIG ─── */
-function openConfig() {
-  renderConfig();
-  openModal('modal-config');
-}
-
-function renderConfig() {
-  const cont = document.getElementById('config-content');
-  cont.innerHTML = '';
-  SPECS.forEach(e => {
-    const block = document.createElement('div');
-    block.className = 'cfg-spec-block';
-    block.innerHTML = `
-      <div class="cfg-spec-title">${e.ico} ${e.nombre}</div>
-      <div class="cfg-prof-list" id="proflist-${e.id}"></div>
-      <div class="cfg-add-row">
-        <input id="addprof-${e.id}" placeholder="Nombre del profesional…" onkeydown="if(event.key==='Enter')addProf('${e.id}')">
-        <button class="cfg-add-btn" onclick="addProf('${e.id}')">+</button>
-      </div>`;
-    cont.appendChild(block);
-    renderProfList(e.id);
-  });
-}
-
-function renderProfList(specId) {
-  const el = document.getElementById(`proflist-${specId}`);
-  if (!el) return;
-  const profs = profesionales[specId] || [];
-  if (profs.length === 0) {
-    el.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:4px 0">Sin profesionales cargados</div>`;
-    return;
-  }
-  el.innerHTML = profs.map((p,i) => `
-    <div class="cfg-prof-row">
-      <div class="cfg-prof-name">${p}</div>
-      <button class="cfg-prof-del" onclick="removeProf('${specId}',${i})">×</button>
-    </div>`).join('');
-}
-
-function addProf(specId) {
-  const inp = document.getElementById(`addprof-${specId}`);
-  const nombre = inp.value.trim();
-  if (!nombre) return;
-  profesionales[specId].push(nombre);
-  guardar(); inp.value = '';
-  renderProfList(specId);
-}
-
-function removeProf(specId, idx) {
-  profesionales[specId].splice(idx, 1);
-  guardar();
-  renderProfList(specId);
-}
-
-/* ─── MODALES ─── */
-function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
-document.querySelectorAll('.overlay').forEach(ov => {
-  ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
-});
-
-/* ─── UTILS ─── */
-function keyHoy() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-/* ─── INIT ─── */
-cargar();
-render();
-</script>
-</body>
-</html>
+  <div class="stats-gr
