@@ -86,6 +86,8 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .spec-to     { border-color:#c084fc33; } .spec-to.active-spec     { border-color:var(--purple); }
 .spec-enf    { border-color:#facc1533; } .spec-enf.active-spec    { border-color:var(--yellow); }
 .spec-cir    { border-color:#f8717133; } .spec-cir.active-spec    { border-color:var(--red); }
+.spec-nut    { border-color:#fb923c33; } .spec-nut.active-spec    { border-color:var(--orange); }
+.spec-med    { border-color:#e2e8f033; } .spec-med.active-spec    { border-color:#e2e8f0; }
 
 /* STATS */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -226,14 +228,15 @@ select option { background:#1e1e1e; }
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-sesion-title">Nueva Sesión</div>
 
-    <label>Profesional</label>
-    <select id="sel-prof">
-      <option value="">— Seleccionar profesional —</option>
-    </select>
+    <label>Profesionales</label>
+    <div class="pill-row" id="prof-pills"></div>
 
-    <label>Acción / Actividad</label>
+    <label>Acción / Actividad · seleccioná una o más</label>
     <div class="pill-row" id="action-pills"></div>
-    <input id="custom-action" placeholder="Otra acción (escribir)…" style="margin-top:6px">
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <input id="custom-action" placeholder="Nueva acción (escribir y agregar)…" style="flex:1">
+      <button onclick="agregarAccionPersonalizada()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0">+</button>
+    </div>
 
     <label>Duración</label>
     <div class="pill-row" id="dur-pills">
@@ -278,11 +281,16 @@ const SPECS = [
     acciones:['Curación traqueotomía','Aspiración de secreciones','Cambio de cánula','Signos vitales','Administración de medicación','Higiene general','Control de herida quirúrgica','Humidificación'] },
   { id:'cir',   nombre:'Cirugía',             ico:'🏥', css:'spec-cir',   color:'#f87171',
     acciones:['Revisión de herida','Indicaciones post-op','Control de evolución','Ajuste de tratamiento','Consulta de urgencia','Planificación próxima etapa','Evaluación de decanulación'] },
+  { id:'nut',   nombre:'Nutrición',            ico:'🥗', css:'spec-nut',   color:'#fb923c',
+    acciones:['Evaluación nutricional','Plan alimentario','Control de peso','Ajuste de dieta','Evaluación de deglución segura','Suplementación','Control de hidratación'] },
+  { id:'med',   nombre:'Medicina General',     ico:'🩺', css:'spec-med',   color:'#e2e8f0',
+    acciones:['Consulta de evolución','Control de signos vitales','Ajuste de medicación','Evaluación respiratoria','Indicaciones generales','Alta parcial','Interconsulta'] },
 ];
 
 /* ─── ESTADO ─── */
 let sesiones = [];
 let profesionales = {};
+let accionesPersonalizadas = {};
 let specActual = null;
 let durActual = null;
 
@@ -293,13 +301,17 @@ function cargar() {
       const d = JSON.parse(raw);
       sesiones = d.sesiones || [];
       profesionales = d.profesionales || {};
+      accionesPersonalizadas = d.accionesPersonalizadas || {};
     }
   } catch(e) {}
-  SPECS.forEach(e => { if (!profesionales[e.id]) profesionales[e.id] = []; });
+  SPECS.forEach(e => {
+    if (!profesionales[e.id]) profesionales[e.id] = [];
+    if (!accionesPersonalizadas[e.id]) accionesPersonalizadas[e.id] = [];
+  });
 }
 
 function guardar() {
-  localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales }));
+  localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas }));
 }
 
 /* ─── TAB ─── */
@@ -323,7 +335,7 @@ function render() {
 function vistaHoy() {
   const hoy = keyHoy();
   const sesHoy = sesiones.filter(s => s.fecha === hoy);
-  const totalMin = sesHoy.reduce((a,s) => a + s.duracion, 0);
+  const totalMin = sesHoy.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
 
   const d = new Date();
   const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -386,11 +398,16 @@ function vistaHistorial() {
   });
 
   const mesesCortos = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  let h = '';
+  let h = `
+    <button class="btn-secondary" onclick="exportarCSV()" style="display:flex;align-items:center;justify-content:center;gap:8px">
+      📥 Exportar historial CSV
+    </button>`;
   Object.entries(porFecha).forEach(([fecha, arr]) => {
-    const [y,m,d] = fecha.split('-');
+    const partes = fecha.split('-');
+    if(partes.length < 3) return;
+    const [y,m,d] = partes;
     const lbl = `${parseInt(d)} ${mesesCortos[parseInt(m)-1]} ${y}`;
-    const total = arr.reduce((a,s) => a + s.duracion, 0);
+    const total = arr.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
     h += `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div class="sec-title">${lbl}</div>
@@ -401,15 +418,41 @@ function vistaHistorial() {
   return h;
 }
 
+function exportarCSV() {
+  if (sesiones.length === 0) { alert('No hay sesiones para exportar.'); return; }
+  const header = ['Fecha','Hora','Especialidad','Profesionales','Acciones','Duración (min)','Notas'];
+  const rows = sesiones.map(s => {
+    const e = SPECS.find(x => x.id === s.especId) || { nombre: 'Desconocida' };
+    const profs = Array.isArray(s.profesionales) && s.profesionales.length > 0
+      ? s.profesionales.join(' / ')
+      : (s.profesional || '');
+    return [
+      s.fecha, s.hora, e.nombre, profs, s.accion, s.duracion, s.notas || ''
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `bitacora-rehab-${keyHoy()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
 /* ─── VISTA RESUMEN ─── */
 function vistaResumen() {
   const total = sesiones.length;
-  const totalMin = sesiones.reduce((a,s) => a + s.duracion, 0);
+  const totalMin = sesiones.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
   const dias = new Set(sesiones.map(s => s.fecha)).size;
 
   const bySpec = {};
   SPECS.forEach(e => { bySpec[e.id] = {count:0, min:0}; });
-  sesiones.forEach(s => { bySpec[s.especId].count++; bySpec[s.especId].min += s.duracion; });
+  
+  sesiones.forEach(s => { 
+    if(bySpec[s.especId]){
+      bySpec[s.especId].count++; 
+      bySpec[s.especId].min += (parseInt(s.duracion)||0); 
+    }
+  });
   const maxMin = Math.max(...Object.values(bySpec).map(v => v.min), 1);
 
   let h = `
@@ -442,7 +485,6 @@ function vistaResumen() {
 
   h += `</div></div></div>`;
 
-  // profesionales frecuentes
   const profCnt = {};
   sesiones.forEach(s => { if (s.profesional) profCnt[s.profesional] = (profCnt[s.profesional]||0)+1; });
   const top = Object.entries(profCnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -458,7 +500,14 @@ function vistaResumen() {
 
 /* ─── LOG ITEM ─── */
 function htmlLogItem(s) {
-  const e = SPECS.find(x => x.id === s.especId);
+  // SALVAVIDAS 1: Si no encuentra la especialidad, asigna una por defecto para no romper la pantalla.
+  const e = SPECS.find(x => x.id === s.especId) || { ico:'❓', nombre:'Especialidad Eliminada', color:'#ffffff' };
+  
+  // SALVAVIDAS 2: Validación estricta usando Array.isArray() para evitar que crashee el .join()
+  const profs = Array.isArray(s.profesionales) && s.profesionales.length > 0
+    ? s.profesionales.join(', ')
+    : (s.profesional || null);
+    
   return `
     <div class="log-item">
       <div class="log-ico">${e.ico}</div>
@@ -467,7 +516,7 @@ function htmlLogItem(s) {
           <div class="log-spec" style="color:${e.color}">${e.nombre}</div>
           <div class="log-time">${s.hora}</div>
         </div>
-        ${s.profesional ? `<div class="log-prof">${s.profesional}</div>` : ''}
+        ${profs ? `<div class="log-prof">${profs}</div>` : ''}
         <div class="log-action">${s.accion}</div>
         <div class="log-dur">⏱ ${s.duracion} min</div>
         ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
@@ -491,7 +540,6 @@ function abrirSelectorSpec() {
       <div class="spec-name">${e.nombre}</div>
     </div>`).join('');
   openModal('modal-spec');
-  // reset nav
   document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
   if (tabActual === 'nueva') { tabActual = 'hoy'; render(); }
 }
@@ -509,22 +557,18 @@ function abrirSesion(specId) {
 
   document.getElementById('modal-sesion-title').textContent = `${e.ico} ${e.nombre}`;
 
-  // profesionales
-  const sel = document.getElementById('sel-prof');
-  sel.innerHTML = '<option value="">— Seleccionar profesional —</option>';
+  const profPills = document.getElementById('prof-pills');
   const profs = profesionales[specId] || [];
   if (profs.length === 0) {
-    sel.innerHTML += '<option value="__sin">Sin profesional asignado</option>';
+    profPills.innerHTML = `<span style="font-size:12px;color:var(--muted)">Sin profesionales cargados. Agregá en ⚙️</span>`;
   } else {
-    profs.forEach(p => { sel.innerHTML += `<option value="${p}">${p}</option>`; });
-    sel.innerHTML += '<option value="__sin">Otro / Sin asignar</option>';
+    profPills.innerHTML = profs.map(p =>
+      `<span class="pill" onclick="this.classList.toggle('sel')">${p}</span>`
+    ).join('');
   }
 
-  // acciones
-  const pills = document.getElementById('action-pills');
-  pills.innerHTML = e.acciones.map(a => `<span class="pill" onclick="selAccion(this)">${a}</span>`).join('');
+  renderActionPills(specId);
 
-  // reset
   document.getElementById('custom-action').value = '';
   document.getElementById('custom-dur').value = '';
   document.getElementById('session-notes').value = '';
@@ -533,10 +577,36 @@ function abrirSesion(specId) {
   openModal('modal-sesion');
 }
 
-function selAccion(el) {
-  document.querySelectorAll('#action-pills .pill').forEach(p => p.classList.remove('sel'));
-  el.classList.add('sel');
-  document.getElementById('custom-action').value = '';
+function renderActionPills(specId) {
+  const e = SPECS.find(x => x.id === specId);
+  const custom = Array.isArray(accionesPersonalizadas[specId]) ? accionesPersonalizadas[specId] : [];
+  const todas = [...e.acciones, ...custom];
+  const pills = document.getElementById('action-pills');
+  pills.innerHTML = todas.map(a =>
+    `<span class="pill" onclick="this.classList.toggle('sel')">${a}</span>`
+  ).join('');
+}
+
+function agregarAccionPersonalizada() {
+  const inp = document.getElementById('custom-action');
+  const nueva = inp.value.trim();
+  if (!nueva) return;
+  if (!accionesPersonalizadas[specActual]) accionesPersonalizadas[specActual] = [];
+  
+  const e = SPECS.find(x => x.id === specActual);
+  const arrPersonalizadas = Array.isArray(accionesPersonalizadas[specActual]) ? accionesPersonalizadas[specActual] : [];
+  const yaExiste = [...e.acciones, ...arrPersonalizadas].includes(nueva);
+  
+  if (!yaExiste) {
+    accionesPersonalizadas[specActual].push(nueva);
+    guardar();
+  }
+  inp.value = '';
+  renderActionPills(specActual);
+  const pills = document.querySelectorAll('#action-pills .pill');
+  if(pills.length > 0) {
+    pills[pills.length - 1].classList.add('sel');
+  }
 }
 
 function selDur(el, val) {
@@ -547,14 +617,18 @@ function selDur(el, val) {
 }
 
 function guardarSesion() {
-  const prof = document.getElementById('sel-prof').value;
-  const pillSel = document.querySelector('#action-pills .pill.sel');
-  const accion = pillSel ? pillSel.textContent : document.getElementById('custom-action').value.trim();
+  // SALVAVIDAS 3: Usamos Array.from() en lugar de spread en NodeList para compatibilidad móvil máxima
+  const profsSeleccionados = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(p => p.textContent);
+  const accionesSeleccionadas = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(p => p.textContent);
+  
+  const customAccion = document.getElementById('custom-action').value.trim();
+  if (customAccion && !accionesSeleccionadas.includes(customAccion)) accionesSeleccionadas.push(customAccion);
+
   const durCustom = document.getElementById('custom-dur').value;
   const dur = parseInt(durActual || durCustom || '0');
   const notas = document.getElementById('session-notes').value.trim();
 
-  if (!accion) { alert('Seleccioná o escribí una acción.'); return; }
+  if (accionesSeleccionadas.length === 0) { alert('Seleccioná al menos una acción.'); return; }
   if (!dur || dur < 1) { alert('Indicá la duración de la sesión.'); return; }
 
   sesiones.push({
@@ -562,8 +636,8 @@ function guardarSesion() {
     fecha: keyHoy(),
     hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
     especId: specActual,
-    profesional: (prof && prof !== '__sin') ? prof : null,
-    accion,
+    profesionales: profsSeleccionados,
+    accion: accionesSeleccionadas.join(' · '),
     duracion: dur,
     notas: notas || null,
   });
