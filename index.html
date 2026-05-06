@@ -212,7 +212,6 @@ select option { background:#1e1e1e; }
 
 <main id="app"></main>
 
-<!-- MODAL SELECTOR ESPECIALIDAD -->
 <div class="overlay" id="modal-spec">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -222,7 +221,6 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
-<!-- MODAL DETALLE DE ESPECIALIDAD -->
 <div class="overlay" id="modal-detalle">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -232,7 +230,6 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
-<!-- MODAL NUEVA SESIÓN -->
 <div class="overlay" id="modal-sesion">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -268,7 +265,6 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
-<!-- MODAL CONFIG -->
 <div class="overlay" id="modal-config">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -304,6 +300,10 @@ let accionesPersonalizadas = {};
 let specActual = null;
 let durActual = null;
 
+// Cronómetro de Tapón
+let taponInicio = localStorage.getItem('rehab_tapon_inicio') || null;
+let taponInterval = null;
+
 function cargar() {
   try {
     const raw = localStorage.getItem('rehab_bitacora_v1');
@@ -324,6 +324,53 @@ function guardar() {
   localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas }));
 }
 
+/* ─── CRONÓMETRO TAPÓN ─── */
+function updateTaponDisplay() {
+  if (!taponInicio || tabActual !== 'hoy') return;
+  const now = Date.now();
+  const diff = now - parseInt(taponInicio);
+  const totalSegundos = Math.floor(diff / 1000);
+  const h = Math.floor(totalSegundos / 3600);
+  const m = Math.floor((totalSegundos % 3600) / 60);
+  const s = totalSegundos % 60;
+
+  const timeStr = (h > 0 ? String(h).padStart(2,'0')+':' : '') +
+                  String(m).padStart(2,'0') + ':' +
+                  String(s).padStart(2,'0');
+
+  const elTime = document.getElementById('tapon-time');
+  if (elTime) elTime.textContent = timeStr;
+}
+
+function toggleTapon() {
+  if (taponInicio) {
+    const diffMin = Math.max(1, Math.round((Date.now() - parseInt(taponInicio)) / 60000));
+    if (confirm(`¿Finalizar prueba de tapón? Se registrará una sesión de ${diffMin} minutos.`)) {
+      sesiones.push({
+        id: Date.now(),
+        fecha: keyHoy(),
+        hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+        especId: 'fono',
+        profesionales: ['Registro Automático'],
+        accion: 'Entrenamiento con cánula tapada',
+        duracion: diffMin,
+        notas: 'Prueba de tolerancia cronometrada.'
+      });
+      guardar();
+      taponInicio = null;
+      localStorage.removeItem('rehab_tapon_inicio');
+      clearInterval(taponInterval);
+      render();
+    }
+  } else {
+    taponInicio = Date.now();
+    localStorage.setItem('rehab_tapon_inicio', taponInicio);
+    render();
+    taponInterval = setInterval(updateTaponDisplay, 1000);
+    updateTaponDisplay();
+  }
+}
+
 /* ─── TAB ─── */
 let tabActual = 'hoy';
 function switchTab(tab, btn) {
@@ -336,7 +383,10 @@ function switchTab(tab, btn) {
 
 function render() {
   const app = document.getElementById('app');
-  if (tabActual === 'hoy')       app.innerHTML = vistaHoy();
+  if (tabActual === 'hoy') {
+    app.innerHTML = vistaHoy();
+    if (taponInicio) updateTaponDisplay();
+  }
   if (tabActual === 'historial') app.innerHTML = vistaHistorial();
   if (tabActual === 'resumen')   app.innerHTML = vistaResumen();
 }
@@ -384,6 +434,14 @@ function vistaHoy() {
         <div class="spec-count">${cnt > 0 ? cnt + ' ses.' : 'Sin sesiones'}</div>
       </div>`;
   });
+
+  // BOTÓN DEL CRONÓMETRO DE TAPÓN
+  h += `
+      <div class="spec-card" id="card-tapon" onclick="toggleTapon()" style="border-color:${taponInicio ? 'var(--green)' : 'var(--border)'}; background:${taponInicio ? 'var(--card2)' : 'var(--card)'}">
+        <div class="spec-ico">${taponInicio ? '⏱️' : '🫁'}</div>
+        <div class="spec-name" id="tapon-title" style="${taponInicio ? 'color:var(--green)' : ''}">${taponInicio ? 'Tapón Activo' : 'Prueba Tapón'}</div>
+        <div class="spec-count" id="tapon-time" style="${taponInicio ? 'color:var(--green); font-weight:bold;' : ''}">${taponInicio ? '...' : 'Tocar para iniciar'}</div>
+      </div>`;
 
   h += `</div></div>`;
 
@@ -515,24 +573,18 @@ function verDetalleEspecialidad(specId) {
   
   let sesEspec = sesiones.filter(s => s.especId === specId);
   
-  // Motor de ordenamiento robusto: Más reciente arriba (descendente)
   sesEspec.sort((a, b) => {
-    // Intentamos armar objetos Date usando fecha (YYYY-MM-DD) y hora (HH:MM)
     const dateA = new Date(`${a.fecha}T${a.hora.padStart(5, '0')}:00`);
     const dateB = new Date(`${b.fecha}T${b.hora.padStart(5, '0')}:00`);
-    
-    // Si la fecha es inválida, usamos el id (que es el timestamp de cuando se creó)
     const timeA = isNaN(dateA) ? a.id : dateA.getTime();
     const timeB = isNaN(dateB) ? b.id : dateB.getTime();
-    
-    return timeB - timeA; // B - A significa mayor primero (más reciente)
+    return timeB - timeA;
   });
   
   const cont = document.getElementById('modal-detalle-content');
   if(sesEspec.length === 0) {
      cont.innerHTML = '<div class="empty-state">No hay registros para esta especialidad.</div>';
   } else {
-     // Le pasamos "true" a htmlLogItem para que muestre la fecha
      cont.innerHTML = sesEspec.map(s => htmlLogItem(s, true)).join('');
   }
   
@@ -541,15 +593,12 @@ function verDetalleEspecialidad(specId) {
 
 /* ─── LOG ITEM ─── */
 function htmlLogItem(s, showDate = false) {
-  // SALVAVIDAS 1: Si no encuentra la especialidad, asigna una por defecto para no romper la pantalla.
   const e = SPECS.find(x => x.id === s.especId) || { ico:'❓', nombre:'Especialidad Eliminada', color:'#ffffff' };
   
-  // SALVAVIDAS 2: Validación estricta usando Array.isArray() para evitar que crashee el .join()
   const profs = Array.isArray(s.profesionales) && s.profesionales.length > 0
     ? s.profesionales.join(', ')
     : (s.profesional || null);
 
-  // MANEJO DE FECHA/HORA
   let timeDisplay = s.hora;
   if (showDate && s.fecha) {
     const partes = s.fecha.split('-');
@@ -768,6 +817,9 @@ function keyHoy() {
 
 /* ─── INIT ─── */
 cargar();
+if (taponInicio) {
+  taponInterval = setInterval(updateTaponDisplay, 1000);
+}
 render();
 </script>
 </body>
