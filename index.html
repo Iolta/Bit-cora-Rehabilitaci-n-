@@ -212,6 +212,7 @@ select option { background:#1e1e1e; }
 
 <main id="app"></main>
 
+<!-- MODAL SELECTOR ESPECIALIDAD -->
 <div class="overlay" id="modal-spec">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -221,6 +222,7 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
+<!-- MODAL DETALLE DE ESPECIALIDAD -->
 <div class="overlay" id="modal-detalle">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -230,6 +232,7 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
+<!-- MODAL NUEVA SESIÓN -->
 <div class="overlay" id="modal-sesion">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -265,6 +268,7 @@ select option { background:#1e1e1e; }
   </div>
 </div>
 
+<!-- MODAL CONFIG -->
 <div class="overlay" id="modal-config">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -419,7 +423,7 @@ function vistaHistorial() {
         <div class="sec-title">${lbl}</div>
         <div style="font-size:11px;color:var(--muted)">${total} min · ${arr.length} ses.</div>
       </div>
-      <div class="log-list" style="margin-bottom:6px">${arr.map(htmlLogItem).join('')}</div>`;
+      <div class="log-list" style="margin-bottom:6px">${arr.map(s => htmlLogItem(s)).join('')}</div>`;
   });
   return h;
 }
@@ -509,28 +513,34 @@ function verDetalleEspecialidad(specId) {
   const e = SPECS.find(x => x.id === specId);
   document.getElementById('modal-detalle-title').innerHTML = `${e.ico} Historial de ${e.nombre}`;
   
-  // Filtramos para quedarnos solo con las sesiones de esta especialidad
   let sesEspec = sesiones.filter(s => s.especId === specId);
   
-  // Las ordenamos temporalmente (de la más vieja a la más nueva)
+  // Motor de ordenamiento robusto: Más reciente arriba (descendente)
   sesEspec.sort((a, b) => {
-    const tiempoA = a.fecha + a.hora;
-    const tiempoB = b.fecha + b.hora;
-    return tiempoA.localeCompare(tiempoB); 
+    // Intentamos armar objetos Date usando fecha (YYYY-MM-DD) y hora (HH:MM)
+    const dateA = new Date(`${a.fecha}T${a.hora.padStart(5, '0')}:00`);
+    const dateB = new Date(`${b.fecha}T${b.hora.padStart(5, '0')}:00`);
+    
+    // Si la fecha es inválida, usamos el id (que es el timestamp de cuando se creó)
+    const timeA = isNaN(dateA) ? a.id : dateA.getTime();
+    const timeB = isNaN(dateB) ? b.id : dateB.getTime();
+    
+    return timeB - timeA; // B - A significa mayor primero (más reciente)
   });
   
   const cont = document.getElementById('modal-detalle-content');
   if(sesEspec.length === 0) {
      cont.innerHTML = '<div class="empty-state">No hay registros para esta especialidad.</div>';
   } else {
-     cont.innerHTML = sesEspec.map(htmlLogItem).join('');
+     // Le pasamos "true" a htmlLogItem para que muestre la fecha
+     cont.innerHTML = sesEspec.map(s => htmlLogItem(s, true)).join('');
   }
   
   openModal('modal-detalle');
 }
 
 /* ─── LOG ITEM ─── */
-function htmlLogItem(s) {
+function htmlLogItem(s, showDate = false) {
   // SALVAVIDAS 1: Si no encuentra la especialidad, asigna una por defecto para no romper la pantalla.
   const e = SPECS.find(x => x.id === s.especId) || { ico:'❓', nombre:'Especialidad Eliminada', color:'#ffffff' };
   
@@ -538,6 +548,16 @@ function htmlLogItem(s) {
   const profs = Array.isArray(s.profesionales) && s.profesionales.length > 0
     ? s.profesionales.join(', ')
     : (s.profesional || null);
+
+  // MANEJO DE FECHA/HORA
+  let timeDisplay = s.hora;
+  if (showDate && s.fecha) {
+    const partes = s.fecha.split('-');
+    if(partes.length === 3) {
+      const [y, m, d] = partes;
+      timeDisplay = `${d}/${m}/${y} - ${s.hora}`;
+    }
+  }
     
   return `
     <div class="log-item">
@@ -545,7 +565,7 @@ function htmlLogItem(s) {
       <div class="log-body">
         <div class="log-head">
           <div class="log-spec" style="color:${e.color}">${e.nombre}</div>
-          <div class="log-time">${s.hora}</div>
+          <div class="log-time">${timeDisplay}</div>
         </div>
         ${profs ? `<div class="log-prof">${profs}</div>` : ''}
         <div class="log-action">${s.accion}</div>
@@ -648,7 +668,6 @@ function selDur(el, val) {
 }
 
 function guardarSesion() {
-  // SALVAVIDAS 3: Usamos Array.from() en lugar de spread en NodeList para compatibilidad móvil máxima
   const profsSeleccionados = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(p => p.textContent);
   const accionesSeleccionadas = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(p => p.textContent);
   
