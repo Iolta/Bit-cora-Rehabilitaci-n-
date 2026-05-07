@@ -318,11 +318,27 @@ function cargar() {
     const raw = localStorage.getItem('rehab_bitacora_v1');
     if (raw) {
       const d = JSON.parse(raw);
-      sesiones = d.sesiones || [];
+      sesiones = Array.isArray(d.sesiones) ? d.sesiones : [];
       profesionales = d.profesionales || {};
       accionesPersonalizadas = d.accionesPersonalizadas || {};
     }
-  } catch(e) {}
+  } catch(e) {
+    sesiones = [];
+  }
+  
+  // SANADOR AUTOMÁTICO (Evita la pantalla negra)
+  sesiones = sesiones.filter(s => s && typeof s === 'object');
+  sesiones.forEach(s => {
+    if (!s.fecha) s.fecha = keyHoy();
+    if (!s.hora) s.hora = '00:00';
+    if (!s.especId) s.especId = 'med';
+    if (!Array.isArray(s.profesionales)) s.profesionales = s.profesional ? [s.profesional] : ['Desconocido'];
+    if (!s.accion) s.accion = 'Registro recuperado';
+    if (!s.duracion || isNaN(s.duracion)) s.duracion = 15;
+  });
+  
+  guardar(); // Guardamos la data limpia
+  
   SPECS.forEach(e => {
     if (!profesionales[e.id]) profesionales[e.id] = [];
     if (!accionesPersonalizadas[e.id]) accionesPersonalizadas[e.id] = [];
@@ -333,65 +349,82 @@ function guardar() {
   localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas }));
 }
 
-/* ─── IMPORTAR CSV ─── */
+/* ─── IMPORTAR CSV (BLINDADO) ─── */
 function procesarCSV(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split(/\r?\n/);
-        if (lines.length < 2) return;
-
-        let nuevosRegistros = 0;
-        
-        // Saltamos la cabecera (i=1)
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
+        try {
+            const text = e.target.result;
+            const lines = text.split(/\r?\n/);
+            if (lines.length < 2) return alert("El archivo parece estar vacío.");
             
-            // Regex para manejar comas dentro de comillas
-            const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            if (!row || row.length < 6) continue;
-
-            // Limpiamos comillas
-            const clean = row.map(v => v.replace(/^"|"$/g, ''));
+            // Detecta si tu celular usa punto y coma o coma
+            const separator = lines[0].includes(';') ? ';' : ',';
+            let nuevosRegistros = 0;
             
-            // Mapeo: [Fecha, Hora, Especialidad, Profesionales, Acciones, Duración, Notas]
-            const [fecha, hora, especNombre, profsRaw, accion, dur, notas] = clean;
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                // Lector de columnas súper resistente
+                let row = []; let inQuote = false; let current = '';
+                for(let c=0; c < lines[i].length; c++){
+                    let char = lines[i][c];
+                    if(char === '"') inQuote = !inQuote;
+                    else if(char === separator && !inQuote) { row.push(current); current = ''; }
+                    else current += char;
+                }
+                row.push(current);
+                
+                let clean = row.map(v => v.replace(/^"|"$/g, '').trim());
+                if(clean.length < 3) continue; // Si es una línea rota la ignora
+                
+                // Mapeo seguro a prueba de errores
+                let fecha = clean[0] || keyHoy();
+                let hora = clean[1] || '00:00';
+                let especNombre = clean[2] || '';
+                
+                // Busca la especialidad, si no la encuentra le pone Medicina General por defecto
+                let spec = SPECS.find(s => s.nombre.toLowerCase() === especNombre.toLowerCase());
+                if (!spec) spec = SPECS.find(s => s.id === 'med'); 
+                
+                let profsRaw = clean[3] || 'Desconocido';
+                let listaProfs = profsRaw.split('/').map(p => p.trim()).filter(p => p);
+                
+                let accion = clean[4] || 'Registro importado';
+                let dur = parseInt(clean[5]) || 15;
+                let notas = clean[6] || '';
 
-            // Encontrar el ID de especialidad por nombre
-            const spec = SPECS.find(s => s.nombre === especNombre);
-            if (!spec) continue;
+                // Evitar duplicados
+                const existe = sesiones.find(s => s.fecha === fecha && s.hora === hora && s.especId === spec.id);
+                if (existe) continue;
 
-            // Evitar duplicados exactos
-            const existe = sesiones.find(s => s.fecha === fecha && s.hora === hora && s.especId === spec.id);
-            if (existe) continue;
+                sesiones.push({
+                    id: Date.now() + i, 
+                    fecha: fecha,
+                    hora: hora,
+                    especId: spec.id,
+                    profesionales: listaProfs,
+                    accion: accion,
+                    duracion: dur,
+                    notas: notas || null
+                });
+                nuevosRegistros++;
+            }
 
-            // Reconstruir lista de profesionales
-            const listaProfs = profsRaw.split(' / ').map(p => p.trim()).filter(p => p);
-
-            sesiones.push({
-                id: Date.now() + i, // ID único temporal
-                fecha: fecha,
-                hora: hora,
-                especId: spec.id,
-                profesionales: listaProfs,
-                accion: accion,
-                duracion: parseInt(dur) || 0,
-                notas: notas || null
-            });
-            nuevosRegistros++;
+            if (nuevosRegistros > 0) {
+                guardar();
+                alert(`¡Éxito! Se han restaurado ${nuevosRegistros} sesiones.\nSe omitieron las que ya existían.`);
+                render();
+            } else {
+                alert('No se encontraron registros nuevos compatibles en este archivo.');
+            }
+        } catch(error) {
+            alert('Hubo un error al leer el archivo. ¿Estás seguro de que tiene el formato de la Bitácora?');
         }
-
-        if (nuevosRegistros > 0) {
-            guardar();
-            alert(`¡Éxito! Se han restaurado ${nuevosRegistros} sesiones.`);
-            render();
-        } else {
-            alert('No se encontraron registros nuevos para importar en este archivo.');
-        }
-        event.target.value = ''; // Limpiar input
+        event.target.value = ''; 
     };
     reader.readAsText(file);
 }
@@ -402,9 +435,9 @@ function updateTaponDisplay() {
   const now = Date.now();
   const diff = now - parseInt(taponInicio);
   const totalSegundos = Math.floor(diff / 1000);
-  const h = Math.floor(totalSegundos / 3600);
-  const m = Math.floor((totalSegundos % 3600) / 60);
-  const s = totalSegundos % 60;
+  const h = Math.floor(totalSegundos / 3600) || 0;
+  const m = Math.floor((totalSegundos % 3600) / 60) || 0;
+  const s = totalSegundos % 60 || 0;
 
   const timeStr = (h > 0 ? String(h).padStart(2,'0')+':' : '') +
                   String(m).padStart(2,'0') + ':' +
@@ -455,12 +488,16 @@ function switchTab(tab, btn) {
 
 function render() {
   const app = document.getElementById('app');
-  if (tabActual === 'hoy') {
-    app.innerHTML = vistaHoy();
-    if (taponInicio) updateTaponDisplay();
+  try {
+    if (tabActual === 'hoy') {
+      app.innerHTML = vistaHoy();
+      if (taponInicio) updateTaponDisplay();
+    }
+    if (tabActual === 'historial') app.innerHTML = vistaHistorial();
+    if (tabActual === 'resumen')   app.innerHTML = vistaResumen();
+  } catch(e) {
+    app.innerHTML = `<div class="empty-state">Hubo un pequeño error visual, pero tus datos están a salvo. Por favor recargá la página.</div>`;
   }
-  if (tabActual === 'historial') app.innerHTML = vistaHistorial();
-  if (tabActual === 'resumen')   app.innerHTML = vistaResumen();
 }
 
 /* ─── VISTA HOY ─── */
@@ -471,4 +508,434 @@ function vistaHoy() {
 
   const d = new Date();
   const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const meses = ['enero','
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const fechaStr = `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}`;
+
+  let h = `
+  <div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${fechaStr}</div>
+    <div style="font-size:22px;font-weight:700">Registro de hoy</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Sesiones</div>
+      <div class="stat-value" style="color:var(--green)">${sesHoy.length}</div>
+      <div class="stat-sub">hoy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tiempo total</div>
+      <div class="stat-value" style="color:var(--blue)">${totalMin}</div>
+      <div class="stat-sub">minutos</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sec-title">Especialidades · toca para registrar</div>
+    <div class="spec-grid">`;
+
+  SPECS.forEach(e => {
+    const cnt = sesHoy.filter(s => s.especId === e.id).length;
+    h += `
+      <div class="spec-card ${e.css} ${cnt > 0 ? 'active-spec' : ''}" onclick="abrirSesion('${e.id}')">
+        <div class="spec-ico">${e.ico}</div>
+        <div class="spec-name">${e.nombre}</div>
+        <div class="spec-count">${cnt > 0 ? cnt + ' ses.' : 'Sin sesiones'}</div>
+      </div>`;
+  });
+
+  // BOTÓN DEL CRONÓMETRO DE TAPÓN
+  h += `
+      <div class="spec-card" id="card-tapon" onclick="toggleTapon()" style="border-color:${taponInicio ? 'var(--green)' : 'var(--border)'}; background:${taponInicio ? 'var(--card2)' : 'var(--card)'}">
+        <div class="spec-ico">${taponInicio ? '⏱️' : '🫁'}</div>
+        <div class="spec-name" id="tapon-title" style="${taponInicio ? 'color:var(--green)' : ''}">${taponInicio ? 'Tapón Activo' : 'Prueba Tapón'}</div>
+        <div class="spec-count" id="tapon-time" style="${taponInicio ? 'color:var(--green); font-weight:bold;' : ''}">${taponInicio ? '...' : 'Tocar para iniciar'}</div>
+      </div>`;
+
+  h += `</div></div>`;
+
+  if (sesHoy.length > 0) {
+    h += `<div><div class="sec-title">Sesiones de hoy</div><div class="log-list">`;
+    [...sesHoy].reverse().forEach(s => { h += htmlLogItem(s); });
+    h += `</div></div>`;
+  } else {
+    h += `<div class="empty-state"><div class="empty-ico">📋</div>No hay sesiones hoy.<br>Tocá una especialidad para empezar.</div>`;
+  }
+  return h;
+}
+
+/* ─── VISTA HISTORIAL ─── */
+function vistaHistorial() {
+  if (sesiones.length === 0) return `<div class="empty-state"><div class="empty-ico">📖</div>Aún no hay sesiones registradas.</div>`;
+
+  const porFecha = {};
+  [...sesiones].reverse().forEach(s => {
+    if (!porFecha[s.fecha]) porFecha[s.fecha] = [];
+    porFecha[s.fecha].push(s);
+  });
+
+  const mesesCortos = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  let h = `
+    <button class="btn-secondary" onclick="exportarCSV()" style="display:flex;align-items:center;justify-content:center;gap:8px">
+      📥 Exportar historial CSV
+    </button>`;
+  Object.entries(porFecha).forEach(([fecha, arr]) => {
+    const partes = String(fecha).split('-');
+    if(partes.length < 3) return;
+    const [y,m,d] = partes;
+    const lbl = `${parseInt(d)} ${mesesCortos[parseInt(m)-1]} ${y}`;
+    const total = arr.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
+    h += `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="sec-title">${lbl}</div>
+        <div style="font-size:11px;color:var(--muted)">${total} min · ${arr.length} ses.</div>
+      </div>
+      <div class="log-list" style="margin-bottom:6px">${arr.map(s => htmlLogItem(s)).join('')}</div>`;
+  });
+  return h;
+}
+
+function exportarCSV() {
+  if (sesiones.length === 0) { alert('No hay sesiones para exportar.'); return; }
+  const header = ['Fecha','Hora','Especialidad','Profesionales','Acciones','Duración (min)','Notas'];
+  const rows = sesiones.map(s => {
+    const e = SPECS.find(x => x.id === s.especId) || { nombre: 'Desconocida' };
+    const profs = Array.isArray(s.profesionales) && s.profesionales.length > 0
+      ? s.profesionales.join(' / ')
+      : (s.profesional || '');
+    return [
+      s.fecha, s.hora, e.nombre, profs, s.accion, s.duracion, s.notas || ''
+    ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `bitacora-rehab-${keyHoy()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ─── VISTA RESUMEN ─── */
+function vistaResumen() {
+  const total = sesiones.length;
+  const totalMin = sesiones.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
+  const dias = new Set(sesiones.map(s => s.fecha)).size;
+
+  const bySpec = {};
+  SPECS.forEach(e => { bySpec[e.id] = {count:0, min:0}; });
+  
+  sesiones.forEach(s => { 
+    if(bySpec[s.especId]){
+      bySpec[s.especId].count++; 
+      bySpec[s.especId].min += (parseInt(s.duracion)||0); 
+    }
+  });
+  const maxMin = Math.max(...Object.values(bySpec).map(v => v.min), 1);
+
+  let h = `
+  <div style="font-size:22px;font-weight:700">Resumen general</div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total sesiones</div><div class="stat-value" style="color:var(--green)">${total}</div><div class="stat-sub">registradas</div></div>
+    <div class="stat-card"><div class="stat-label">Tiempo total</div><div class="stat-value" style="color:var(--blue)">${totalMin}</div><div class="stat-sub">minutos</div></div>
+    <div class="stat-card"><div class="stat-label">Días activos</div><div class="stat-value" style="color:var(--purple)">${dias}</div><div class="stat-sub">con actividad</div></div>
+    <div class="stat-card"><div class="stat-label">Prom. diario</div><div class="stat-value" style="color:var(--yellow)">${dias > 0 ? Math.round(totalMin/dias) : 0}</div><div class="stat-sub">min/día</div></div>
+  </div>
+
+  <div>
+    <div class="sec-title">Por especialidad (tocá para ver detalles)</div>
+    <div class="card" style="cursor:default">
+      <div class="progress-row">`;
+
+  SPECS.forEach(e => {
+    const v = bySpec[e.id];
+    const pct = Math.round(v.min / maxMin * 100);
+    h += `
+      <div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer; padding: 4px 0;">
+        <div class="prog-head">
+          <div class="prog-name">${e.ico} ${e.nombre}</div>
+          <div class="prog-val">${v.count} ses · ${v.min} min</div>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${e.color}"></div></div>
+      </div>`;
+  });
+
+  h += `</div></div></div>`;
+
+  const profCnt = {};
+  sesiones.forEach(s => { 
+      const profList = Array.isArray(s.profesionales) ? s.profesionales : [s.profesional];
+      profList.forEach(p => { if (p) profCnt[p] = (profCnt[p]||0)+1; });
+  });
+  const top = Object.entries(profCnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if (top.length > 0) {
+    h += `<div><div class="sec-title">Profesionales frecuentes</div><div class="log-list">`;
+    top.forEach(([n,c]) => {
+      h += `<div class="card" style="cursor:default;display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;font-weight:600">${n}</div><div style="font-size:13px;color:var(--green);font-weight:700">${c} ses.</div></div>`;
+    });
+    h += `</div></div>`;
+  }
+  return h;
+}
+
+/* ─── DETALLE POR ESPECIALIDAD (CRONOLÓGICO) ─── */
+function verDetalleEspecialidad(specId) {
+  const e = SPECS.find(x => x.id === specId);
+  document.getElementById('modal-detalle-title').innerHTML = `${e.ico} Historial de ${e.nombre}`;
+  
+  let sesEspec = sesiones.filter(s => s.especId === specId);
+  
+  // Orden descendente (más reciente primero)
+  sesEspec.sort((a, b) => {
+    const horaA = String(a.hora || '00:00').padStart(5, '0');
+    const horaB = String(b.hora || '00:00').padStart(5, '0');
+    const dateA = new Date(`${a.fecha||'2000-01-01'}T${horaA}:00`);
+    const dateB = new Date(`${b.fecha||'2000-01-01'}T${horaB}:00`);
+    const timeA = isNaN(dateA) ? a.id : dateA.getTime();
+    const timeB = isNaN(dateB) ? b.id : dateB.getTime();
+    return timeB - timeA;
+  });
+  
+  const cont = document.getElementById('modal-detalle-content');
+  if(sesEspec.length === 0) {
+     cont.innerHTML = '<div class="empty-state">No hay registros para esta especialidad.</div>';
+  } else {
+     cont.innerHTML = sesEspec.map(s => htmlLogItem(s, true)).join('');
+  }
+  
+  openModal('modal-detalle');
+}
+
+/* ─── LOG ITEM ─── */
+function htmlLogItem(s, showDate = false) {
+  const e = SPECS.find(x => x.id === s.especId) || { ico:'❓', nombre:'Especialidad Eliminada', color:'#ffffff' };
+  
+  const profs = Array.isArray(s.profesionales) && s.profesionales.length > 0
+    ? s.profesionales.join(', ')
+    : (s.profesional || null);
+
+  let timeDisplay = String(s.hora || '00:00');
+  if (showDate && s.fecha) {
+    const partes = String(s.fecha).split('-');
+    if(partes.length === 3) {
+      const [y, m, d] = partes;
+      timeDisplay = `${d}/${m}/${y} - ${timeDisplay}`;
+    }
+  }
+    
+  return `
+    <div class="log-item">
+      <div class="log-ico">${e.ico}</div>
+      <div class="log-body">
+        <div class="log-head">
+          <div class="log-spec" style="color:${e.color}">${e.nombre}</div>
+          <div class="log-time">${timeDisplay}</div>
+        </div>
+        ${profs ? `<div class="log-prof">${profs}</div>` : ''}
+        <div class="log-action">${s.accion || ''}</div>
+        <div class="log-dur">⏱ ${s.duracion || 0} min</div>
+        ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
+      </div>
+      <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
+    </div>`;
+}
+
+function borrarSesion(id) {
+  if (!confirm('¿Eliminar esta sesión?')) return;
+  sesiones = sesiones.filter(s => s.id !== id);
+  guardar(); render();
+}
+
+/* ─── MODAL SELECTOR ESPECIALIDAD ─── */
+function abrirSelectorSpec() {
+  const grid = document.getElementById('spec-grid-picker');
+  grid.innerHTML = SPECS.map(e => `
+    <div class="spec-card ${e.css}" onclick="pickSpec('${e.id}')">
+      <div class="spec-ico">${e.ico}</div>
+      <div class="spec-name">${e.nombre}</div>
+    </div>`).join('');
+  openModal('modal-spec');
+  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
+  if (tabActual === 'nueva') { tabActual = 'hoy'; render(); }
+}
+
+function pickSpec(id) {
+  closeModal('modal-spec');
+  abrirSesion(id);
+}
+
+/* ─── MODAL NUEVA SESIÓN ─── */
+function abrirSesion(specId) {
+  specActual = specId;
+  durActual = null;
+  const e = SPECS.find(x => x.id === specId);
+
+  document.getElementById('modal-sesion-title').textContent = `${e.ico} ${e.nombre}`;
+
+  const profPills = document.getElementById('prof-pills');
+  const profs = profesionales[specId] || [];
+  if (profs.length === 0) {
+    profPills.innerHTML = `<span style="font-size:12px;color:var(--muted)">Sin profesionales cargados. Agregá en ⚙️</span>`;
+  } else {
+    profPills.innerHTML = profs.map(p =>
+      `<span class="pill" onclick="this.classList.toggle('sel')">${p}</span>`
+    ).join('');
+  }
+
+  renderActionPills(specId);
+
+  document.getElementById('custom-action').value = '';
+  document.getElementById('custom-dur').value = '';
+  document.getElementById('session-notes').value = '';
+  document.querySelectorAll('#dur-pills .pill').forEach(p => p.classList.remove('sel'));
+
+  openModal('modal-sesion');
+}
+
+function renderActionPills(specId) {
+  const e = SPECS.find(x => x.id === specId);
+  const custom = Array.isArray(accionesPersonalizadas[specId]) ? accionesPersonalizadas[specId] : [];
+  const todas = [...e.acciones, ...custom];
+  const pills = document.getElementById('action-pills');
+  pills.innerHTML = todas.map(a =>
+    `<span class="pill" onclick="this.classList.toggle('sel')">${a}</span>`
+  ).join('');
+}
+
+function agregarAccionPersonalizada() {
+  const inp = document.getElementById('custom-action');
+  const nueva = inp.value.trim();
+  if (!nueva) return;
+  if (!accionesPersonalizadas[specActual]) accionesPersonalizadas[specActual] = [];
+  
+  const e = SPECS.find(x => x.id === specActual);
+  const arrPersonalizadas = Array.isArray(accionesPersonalizadas[specActual]) ? accionesPersonalizadas[specActual] : [];
+  const yaExiste = [...e.acciones, ...arrPersonalizadas].includes(nueva);
+  
+  if (!yaExiste) {
+    accionesPersonalizadas[specActual].push(nueva);
+    guardar();
+  }
+  inp.value = '';
+  renderActionPills(specActual);
+  const pills = document.querySelectorAll('#action-pills .pill');
+  if(pills.length > 0) {
+    pills[pills.length - 1].classList.add('sel');
+  }
+}
+
+function selDur(el, val) {
+  document.querySelectorAll('#dur-pills .pill').forEach(p => p.classList.remove('sel'));
+  el.classList.add('sel');
+  durActual = val;
+  document.getElementById('custom-dur').value = '';
+}
+
+function guardarSesion() {
+  const profsSeleccionados = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(p => p.textContent);
+  const accionesSeleccionadas = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(p => p.textContent);
+  
+  const customAccion = document.getElementById('custom-action').value.trim();
+  if (customAccion && !accionesSeleccionadas.includes(customAccion)) accionesSeleccionadas.push(customAccion);
+
+  const durCustom = document.getElementById('custom-dur').value;
+  const dur = parseInt(durActual || durCustom || '0');
+  const notas = document.getElementById('session-notes').value.trim();
+
+  if (accionesSeleccionadas.length === 0) { alert('Seleccioná al menos una acción.'); return; }
+  if (!dur || dur < 1) { alert('Indicá la duración de la sesión.'); return; }
+
+  sesiones.push({
+    id: Date.now(),
+    fecha: keyHoy(),
+    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    especId: specActual,
+    profesionales: profsSeleccionados,
+    accion: accionesSeleccionadas.join(' · '),
+    duracion: dur,
+    notas: notas || null,
+  });
+
+  guardar();
+  closeModal('modal-sesion');
+  tabActual = 'hoy';
+  document.querySelectorAll('nav button').forEach((b,i) => b.classList.toggle('active', i===0));
+  render();
+}
+
+/* ─── CONFIG ─── */
+function openConfig() {
+  renderConfig();
+  openModal('modal-config');
+}
+
+function renderConfig() {
+  const cont = document.getElementById('config-content');
+  cont.innerHTML = '';
+  SPECS.forEach(e => {
+    const block = document.createElement('div');
+    block.className = 'cfg-spec-block';
+    block.innerHTML = `
+      <div class="cfg-spec-title">${e.ico} ${e.nombre}</div>
+      <div class="cfg-prof-list" id="proflist-${e.id}"></div>
+      <div class="cfg-add-row">
+        <input id="addprof-${e.id}" placeholder="Nombre del profesional…" onkeydown="if(event.key==='Enter')addProf('${e.id}')">
+        <button class="cfg-add-btn" onclick="addProf('${e.id}')">+</button>
+      </div>`;
+    cont.appendChild(block);
+    renderProfList(e.id);
+  });
+}
+
+function renderProfList(specId) {
+  const el = document.getElementById(`proflist-${specId}`);
+  if (!el) return;
+  const profs = profesionales[specId] || [];
+  if (profs.length === 0) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:4px 0">Sin profesionales cargados</div>`;
+    return;
+  }
+  el.innerHTML = profs.map((p,i) => `
+    <div class="cfg-prof-row">
+      <div class="cfg-prof-name">${p}</div>
+      <button class="cfg-prof-del" onclick="removeProf('${specId}',${i})">×</button>
+    </div>`).join('');
+}
+
+function addProf(specId) {
+  const inp = document.getElementById(`addprof-${specId}`);
+  const nombre = inp.value.trim();
+  if (!nombre) return;
+  profesionales[specId].push(nombre);
+  guardar(); inp.value = '';
+  renderProfList(specId);
+}
+
+function removeProf(specId, idx) {
+  profesionales[specId].splice(idx, 1);
+  guardar();
+  renderProfList(specId);
+}
+
+/* ─── MODALES ─── */
+function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
+});
+
+/* ─── UTILS ─── */
+function keyHoy() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+/* ─── INIT ─── */
+cargar();
+if (taponInicio) {
+  taponInterval = setInterval(updateTaponDisplay, 1000);
+}
+render();
+</script>
+</body>
+</html>
