@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Bitácora Rehab">
 <title>BITÁCORA · REHABILITACIÓN</title>
+
+<link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Bit%C3%A1cora%20Rehab%22%2C%22short_name%22%3A%22Rehab%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23111111%22%2C%22theme_color%22%3A%22%23111111%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%AB%81%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D'>
+
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -349,7 +352,7 @@ function guardar() {
   localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas }));
 }
 
-/* ─── IMPORTAR CSV MEJORADO (Restaura Sesiones y Profesionales) ─── */
+/* ─── IMPORTAR CSV MEJORADO ─── */
 function procesarCSV(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -386,12 +389,9 @@ function procesarCSV(event) {
                 let spec = SPECS.find(s => s.nombre.toLowerCase() === especNombre.toLowerCase());
                 if (!spec) spec = SPECS.find(s => s.id === 'med'); 
                 
-                // Recoger nombres de profesionales
                 let profsRaw = clean[3] || '';
-                // Separamos por "/" que es como exporta la app
                 let listaProfs = profsRaw.split(' / ').map(p => p.trim()).filter(p => p && p !== 'Desconocido' && p !== 'Registro Automático');
                 
-                // IMPORTANTE: Agregar profesionales a la lista global si no existen
                 if (!profesionales[spec.id]) profesionales[spec.id] = [];
                 listaProfs.forEach(p => {
                     if (!profesionales[spec.id].includes(p)) {
@@ -403,7 +403,6 @@ function procesarCSV(event) {
                 let dur = parseInt(clean[5]) || 15;
                 let notas = clean[6] || '';
 
-                // Evitar duplicados exactos en el historial
                 const existe = sesiones.find(s => s.fecha === fecha && s.hora === hora && s.especId === spec.id);
                 if (existe) continue;
 
