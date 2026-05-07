@@ -155,7 +155,7 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 
 /* FORM */
 label { font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
-select, input, textarea {
+select, input[type="text"], input[type="number"], input[type="url"], textarea {
   background:var(--card); border:1px solid var(--border);
   border-radius:10px; color:var(--text); padding:13px 14px;
   font-size:15px; width:100%; font-family:inherit; outline:none;
@@ -246,7 +246,7 @@ select option { background:#1e1e1e; }
     <label>Acción / Actividad · seleccioná una o más</label>
     <div class="pill-row" id="action-pills"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <input id="custom-action" placeholder="Nueva acción (escribir y agregar)…" style="flex:1">
+      <input type="text" id="custom-action" placeholder="Nueva acción (escribir y agregar)…" style="flex:1">
       <button onclick="agregarAccionPersonalizada()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0">+</button>
     </div>
 
@@ -275,10 +275,24 @@ select option { background:#1e1e1e; }
     <div class="modal-handle"></div>
     <div class="modal-title">Configuración</div>
     
-    <div class="sec-title" style="color:var(--blue)">Respaldo de Datos</div>
+    <div class="sec-title" style="color:var(--blue)">Respaldo de Datos (Local)</div>
     <button class="btn-secondary" onclick="document.getElementById('import-input').click()" style="margin-bottom:20px; border-color:var(--blue)">
         📥 Restaurar desde archivo CSV
     </button>
+
+    <div class="sec-title" style="color:var(--green)">Respaldo Automático (Nube)</div>
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:20px;">
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; color:var(--text); font-size:13px; text-transform:none; letter-spacing:0; margin-bottom:0;">
+        <input type="checkbox" id="cloud-toggle" onchange="toggleCloudSync()" style="width:20px; height:20px; flex-shrink:0; accent-color:var(--green);">
+        Enviar copias a Google Sheets
+      </label>
+      <div id="cloud-url-container" style="display:none; margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">
+        <input type="url" id="cloud-url" placeholder="Pegá aquí el link de tu Web App..." oninput="saveCloudUrl()" style="font-size:12px; padding:10px;">
+        <div style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.4;">
+          Requiere configurar un Script en Google Drive. Si dejás esto apagado, la app sigue funcionando 100% normal.
+        </div>
+      </div>
+    </div>
 
     <div class="sec-title">Profesionales por Especialidad</div>
     <div id="config-content" style="display:flex;flex-direction:column;gap:20px"></div>
@@ -309,6 +323,7 @@ const SPECS = [
 let sesiones = [];
 let profesionales = {};
 let accionesPersonalizadas = {};
+let cloudSync = { enabled: false, url: '' };
 let specActual = null;
 let durActual = null;
 
@@ -324,6 +339,7 @@ function cargar() {
       sesiones = Array.isArray(d.sesiones) ? d.sesiones : [];
       profesionales = d.profesionales || {};
       accionesPersonalizadas = d.accionesPersonalizadas || {};
+      cloudSync = d.cloudSync || { enabled: false, url: '' };
     }
   } catch(e) {
     sesiones = [];
@@ -349,7 +365,30 @@ function cargar() {
 }
 
 function guardar() {
-  localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas }));
+  localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas, cloudSync }));
+}
+
+/* ─── ENVIAR A GOOGLE SHEETS ─── */
+function enviarNube(sesion) {
+  if (!cloudSync.enabled || !cloudSync.url) return;
+  const e = SPECS.find(x => x.id === sesion.especId) || { nombre: 'Desconocida' };
+  
+  const payload = {
+    fecha: sesion.fecha,
+    hora: sesion.hora,
+    especialidad: e.nombre,
+    profesionales: sesion.profesionales.join(' / '),
+    accion: sesion.accion,
+    duracion: sesion.duracion,
+    notas: sesion.notas || ''
+  };
+
+  fetch(cloudSync.url, {
+    method: 'POST',
+    mode: 'no-cors', // Fundamental para evitar bloqueos de Google
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(err => console.log('Sincronización omitida (sin internet)'));
 }
 
 /* ─── IMPORTAR CSV MEJORADO ─── */
@@ -454,7 +493,7 @@ function toggleTapon() {
   if (taponInicio) {
     const diffMin = Math.max(1, Math.round((Date.now() - parseInt(taponInicio)) / 60000));
     if (confirm(`¿Finalizar prueba de tapón? Se registrará una sesión de ${diffMin} minutos.`)) {
-      sesiones.push({
+      const nuevaSesion = {
         id: Date.now(),
         fecha: keyHoy(),
         hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
@@ -463,8 +502,10 @@ function toggleTapon() {
         accion: 'Entrenamiento con cánula tapada',
         duracion: diffMin,
         notas: 'Prueba de tolerancia cronometrada.'
-      });
+      };
+      sesiones.push(nuevaSesion);
       guardar();
+      enviarNube(nuevaSesion); // ENVIAR A DRIVE
       taponInicio = null;
       localStorage.removeItem('rehab_tapon_inicio');
       clearInterval(taponInterval);
@@ -745,17 +786,42 @@ function guardarSesion() {
   const acts = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(p => p.textContent);
   const dur = parseInt(durActual || document.getElementById('custom-dur').value || '0');
   if (acts.length === 0 || dur < 1) { alert('Faltan datos.'); return; }
-  sesiones.push({
+  
+  const nuevaSesion = {
     id: Date.now(), fecha: keyHoy(),
     hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
     especId: specActual, profesionales: profs.length > 0 ? profs : ['Desconocido'],
     accion: acts.join(' · '), duracion: dur, notas: document.getElementById('session-notes').value.trim() || null,
-  });
-  guardar(); closeModal('modal-sesion'); tabActual = 'hoy'; render();
+  };
+  
+  sesiones.push(nuevaSesion);
+  guardar(); 
+  enviarNube(nuevaSesion); // ENVIAR A DRIVE
+  closeModal('modal-sesion'); 
+  tabActual = 'hoy'; 
+  render();
 }
 
-/* ─── CONFIG ─── */
-function openConfig() { renderConfig(); openModal('modal-config'); }
+/* ─── CONFIG & CLOUD SYNC ─── */
+function openConfig() { 
+  renderConfig(); 
+  document.getElementById('cloud-toggle').checked = cloudSync.enabled;
+  document.getElementById('cloud-url').value = cloudSync.url;
+  document.getElementById('cloud-url-container').style.display = cloudSync.enabled ? 'block' : 'none';
+  openModal('modal-config'); 
+}
+
+function toggleCloudSync() {
+  cloudSync.enabled = document.getElementById('cloud-toggle').checked;
+  document.getElementById('cloud-url-container').style.display = cloudSync.enabled ? 'block' : 'none';
+  guardar();
+}
+
+function saveCloudUrl() {
+  cloudSync.url = document.getElementById('cloud-url').value.trim();
+  guardar();
+}
+
 function renderConfig() {
   const cont = document.getElementById('config-content');
   cont.innerHTML = '';
@@ -766,7 +832,7 @@ function renderConfig() {
     block.innerHTML = `
       <div class="cfg-spec-title">${e.ico} ${e.nombre}</div>
       <div class="cfg-prof-list">${profs.map((p,i) => `<div class="cfg-prof-row"><div class="cfg-prof-name">${p}</div><button class="cfg-prof-del" onclick="removeProf('${e.id}',${i})">×</button></div>`).join('')}</div>
-      <div class="cfg-add-row"><input id="addprof-${e.id}" placeholder="Nombre..."><button class="cfg-add-btn" onclick="addProf('${e.id}')">+</button></div>`;
+      <div class="cfg-add-row"><input type="text" id="addprof-${e.id}" placeholder="Nombre..."><button class="cfg-add-btn" onclick="addProf('${e.id}')">+</button></div>`;
     cont.appendChild(block);
   });
 }
