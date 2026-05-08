@@ -103,6 +103,21 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .stat-value { font-size:24px; font-weight:700; }
 .stat-sub { font-size:11px; color:var(--muted); }
 
+/* CIRCULO TAPON */
+.tapon-circle-container { display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px; margin-bottom: 20px;}
+.tapon-circle {
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  border: 3px solid var(--green);
+  background: var(--card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform 0.2s;
+  box-shadow: 0 4px 15px rgba(74, 222, 128, 0.1);
+}
+.tapon-circle:active { transform: scale(0.95); background: var(--card2); }
+.tapon-circle-val { font-size: 22px; font-weight: 700; color: var(--green); }
+.tapon-circle-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; text-align: center; }
+
 /* LOG */
 .log-list { display:flex; flex-direction:column; gap:8px; }
 .log-item {
@@ -417,7 +432,6 @@ function vistaHoy() {
   const hoy = keyHoy();
   const sesHoy = sesiones.filter(s => s.fecha === hoy);
   
-  // FILTRO: Ignoramos el tapón para las estadísticas generales diarias
   const sesHoyRehab = sesHoy.filter(s => s.accion !== ACTION_TAPON);
   const totalMinRehab = sesHoyRehab.reduce((a,s) => a + s.duracion, 0);
 
@@ -429,7 +443,6 @@ function vistaHoy() {
   <div class="spec-grid" style="margin-top:14px">`;
   
   SPECS.forEach(e => {
-    // Acá sí contamos las sesiones para pintar el cuadradito si hubo actividad
     const cnt = sesHoy.filter(s => s.especId === e.id && s.accion !== ACTION_TAPON).length;
     h += `<div class="spec-card ${e.css} ${cnt>0?'active-spec':''}" onclick="abrirSesion('${e.id}')">
       <div class="spec-ico">${e.ico}</div><div class="spec-name">${e.nombre}</div><div class="spec-count">${cnt>0?cnt+' ses.':'---'}</div>
@@ -452,7 +465,6 @@ function vistaHistorial() {
   const porF = {}; sesiones.forEach(s => { if(!porF[s.fecha]) porF[s.fecha]=[]; porF[s.fecha].push(s); });
   let h = `<button class="btn-secondary" onclick="exportarCSV()">📥 Exportar CSV</button>`;
   Object.keys(porF).sort().reverse().forEach(f => {
-    // FILTRO: Solo sumamos minutos de sesiones que NO son tapón para el encabezado del día
     const activasDelDia = porF[f].filter(s => s.accion !== ACTION_TAPON);
     const t = activasDelDia.reduce((a,s)=>a+s.duracion,0);
     
@@ -484,19 +496,19 @@ function vistaResumen() {
     }
   });
 
-  const maxM = Math.max(...Object.values(stats).map(v => v.min), 1);
+  // MAGIA ACÁ: Buscamos el máximo SOLO entre las especialidades activas (ignoramos al tapón)
+  const maxM = Math.max(...SPECS.map(e => stats[e.id].min), 1);
 
   let h = `
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">Total Sesiones</div><div class="stat-value">${totalSesionesRehab}</div><div class="stat-sub">activas</div></div>
     <div class="stat-card"><div class="stat-label">Tiempo Acumulado</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMinRehab)}</div><div class="stat-sub">activo</div></div>
   </div>
-  <div class="card" style="margin-top:10px"><div class="progress-row">
-    <div class="prog-item" onclick="verDetalleEspecialidad('tapon_especial')" style="cursor:pointer">
-      <div class="prog-head"><div class="prog-name">⏱️ Prueba de Tapón</div><div class="prog-val" style="color:var(--green); font-weight:bold">${formatMin(stats.tapon.min)}</div></div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${(stats.tapon.min/maxM)*100}%; background:var(--green)"></div></div>
-    </div>`;
+  
+  <div class="sec-title" style="margin-top:16px">Terapias Activas</div>
+  <div class="card"><div class="progress-row">`;
 
+  // Renderizamos SOLO las barras de las terapias activas
   SPECS.forEach(e => {
     const v = stats[e.id];
     h += `<div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer">
@@ -505,6 +517,20 @@ function vistaResumen() {
     </div>`;
   });
   h += `</div></div>`;
+
+  // SECTOR AISLADO PARA EL TAPÓN (El Círculo)
+  h += `
+  <div class="tapon-circle-container">
+    <div class="sec-title" style="margin-bottom:8px">Entrenamiento Pasivo</div>
+    <div class="tapon-circle" onclick="verDetalleEspecialidad('tapon_especial')">
+      <div style="font-size:24px; margin-bottom:4px;">⏱️</div>
+      <div class="tapon-circle-val">${formatMin(stats.tapon.min)}</div>
+      <div class="tapon-circle-lbl">${stats.tapon.count} pruebas</div>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">Tocá el círculo para ver el historial</div>
+  </div>
+  `;
+
   return h;
 }
 
