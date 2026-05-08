@@ -65,18 +65,15 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 
 /* SEC TITLE */
 .sec-title {
-  font-size:12px; 
-  font-weight:600; letter-spacing:.15em;
-  text-transform:uppercase; color:var(--text-bright); 
-  margin-bottom:4px;
+  font-size:12px; font-weight:600; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--text-bright); margin-bottom:4px;
 }
 
 /* CARD & GRID */
 .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
 .spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .spec-card {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius); padding:18px 12px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 12px;
   display:flex; flex-direction:column; align-items:center; gap:8px;
   cursor:pointer; transition:all .15s; user-select:none; text-align:center;
 }
@@ -110,7 +107,7 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .prog-bar { height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
 .prog-fill { height:100%; border-radius:4px; transition:width .4s ease; }
 
-/* LOGS (HISTORIAL) - ACCESIBILIDAD */
+/* LOGS (HISTORIAL) */
 .log-list { display:flex; flex-direction:column; gap:8px; }
 .log-item { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; gap:12px; }
 .log-body { flex:1; display:flex; flex-direction:column; gap:4px; }
@@ -154,10 +151,18 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 label { font-size:11px; color:var(--text-bright); letter-spacing:.1em; text-transform:uppercase; }
 input, textarea, select { background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:13px 14px; font-size:15px; width:100%; outline:none; }
 .pill-row { display:flex; flex-wrap:wrap; gap:8px; }
-.pill { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+.pill { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; }
 .pill.sel { background:var(--green); border-color:var(--green); color:#000; }
 .btn-primary { background:var(--green); color:#000; border:none; border-radius:12px; padding:15px; font-size:14px; font-weight:700; text-transform:uppercase; width:100%; cursor:pointer; }
 .btn-secondary { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:13px; font-size:13px; width:100%; cursor:pointer; }
+
+/* --- CONFIGURACION ESTILOS RESTAURADOS --- */
+.cfg-spec-block { display:flex; flex-direction:column; gap:10px; margin-bottom: 8px; }
+.cfg-spec-title { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--text-bright); border-bottom:1px solid var(--border); padding-bottom:6px; }
+.cfg-add-row { display:flex; gap:8px; }
+.cfg-add-row input { flex:1; }
+.cfg-add-btn { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:10px; width:50px; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cfg-add-btn:active { background:var(--border); }
 </style>
 </head>
 <body>
@@ -250,7 +255,7 @@ input, textarea, select { background:var(--card); border:1px solid var(--border)
     <div class="pill-row" id="action-pills"></div>
     <div style="display:flex;gap:8px; margin-bottom: 10px;">
       <input type="text" id="custom-action" placeholder="Otra acción nueva...">
-      <button onclick="agregarAccionPersonalizada()" style="width:50px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:10px;font-size:20px;font-weight:bold;">+</button>
+      <button onclick="agregarAccionPersonalizada()" class="cfg-add-btn">+</button>
     </div>
     
     <label>Duración</label>
@@ -341,6 +346,30 @@ function enviarNube(s) {
   fetch(cloudSync.url, { method:'POST', mode:'no-cors', body:JSON.stringify(payload) }).catch(() => {});
 }
 
+/* --- FUNCIÓN RESTAURADA: EXPORTAR A CSV --- */
+function exportarCSV() {
+  if (sesiones.length === 0) {
+    alert("No hay sesiones para exportar.");
+    return;
+  }
+  let csv = "Fecha;Hora;Especialidad;Profesionales;Acción;Duracion_min;Notas\n";
+  sesiones.forEach(s => {
+      const e = SPECS.find(x => x.id === s.especId) || {nombre: 'Tapón'};
+      const specName = s.accion === ACTION_TAPON ? 'Prueba de Tapón' : e.nombre;
+      const profs = s.profesionales.join(' / ');
+      const cleanNotas = (s.notas || '').replace(/\n/g, ' ').replace(/;/g, ',');
+      csv += `${s.fecha};${s.hora};${specName};${profs};${s.accion};${s.duracion};${cleanNotas}\n`;
+  });
+  
+  const blob = new Blob(["\ufeff", csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; 
+  a.download = 'bitacora_rehab_' + keyHoy() + '.csv';
+  a.click(); 
+  URL.revokeObjectURL(url);
+}
+
 function procesarCSV(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -356,6 +385,18 @@ function procesarCSV(event) {
     guardar(); render(); alert('Importación exitosa');
   };
   reader.readAsText(file);
+}
+
+/* --- FUNCIONES RESTAURADAS: NUBE --- */
+function toggleCloudSync() {
+  cloudSync.enabled = document.getElementById('cloud-toggle').checked;
+  document.getElementById('cloud-url-container').style.display = cloudSync.enabled ? 'block' : 'none';
+  guardar();
+}
+
+function saveCloudUrl() {
+  cloudSync.url = document.getElementById('cloud-url').value;
+  guardar();
 }
 
 function updateTaponDisplay() {
@@ -477,18 +518,15 @@ function abrirSelectorSpec() {
 }
 function pickSpec(id) { closeModal('modal-spec'); abrirSesion(id); }
 
-/* --- FUNCIÓN RESTAURADA: LIMPIEZA DE FORMULARIO AL ABRIR --- */
 function abrirSesion(id) {
   specActual = id; 
   durActual = null; 
   const e = SPECS.find(x => x.id === id);
   document.getElementById('modal-sesion-title').textContent = e.nombre;
   
-  // Cargar píldoras de base
   document.getElementById('prof-pills').innerHTML = profesionales[id].map(p => `<span class="pill" onclick="this.classList.toggle('sel')">${p}</span>`).join('');
   document.getElementById('action-pills').innerHTML = [...e.acciones, ...(accionesPersonalizadas[id]||[])].map(a => `<span class="pill" onclick="this.classList.toggle('sel')">${a}</span>`).join('');
   
-  // Limpiar selecciones previas sucias
   document.getElementById('custom-action').value = '';
   document.getElementById('custom-dur').value = '';
   document.getElementById('session-notes').value = '';
@@ -497,29 +535,21 @@ function abrirSesion(id) {
   openModal('modal-sesion');
 }
 
-/* --- FUNCIÓN RESTAURADA: AGREGAR ACCIÓN PERSONALIZADA CON EL BOTON '+' --- */
 function agregarAccionPersonalizada() {
   const inp = document.getElementById('custom-action');
   const nuevaAccion = inp.value.trim();
+  if (!nuevaAccion) return; 
   
-  if (!nuevaAccion) return; // Si está vacío, no hace nada
-  
-  // Guardamos la nueva acción en la memoria de esa especialidad
   if (!accionesPersonalizadas[specActual]) accionesPersonalizadas[specActual] = [];
   if (!accionesPersonalizadas[specActual].includes(nuevaAccion)) {
     accionesPersonalizadas[specActual].push(nuevaAccion);
-    guardar(); // Guardar en el dispositivo
+    guardar(); 
   }
-  
-  // Vaciamos el cuadrito de texto
   inp.value = '';
   
-  // Refrescamos las opciones para que aparezca el botón nuevo y ya seleccionado
   const e = SPECS.find(x => x.id === specActual);
   const todasLasAcciones = [...e.acciones, ...accionesPersonalizadas[specActual]];
-  
   document.getElementById('action-pills').innerHTML = todasLasAcciones.map(a => {
-    // Si es la que acabamos de agregar, la dejamos pintada de verde (seleccionada)
     const isSel = (a === nuevaAccion) ? 'sel' : '';
     return `<span class="pill ${isSel}" onclick="this.classList.toggle('sel')">${a}</span>`;
   }).join('');
@@ -560,10 +590,27 @@ function guardarSesion() {
   switchTab('hoy');
 }
 
+/* --- FUNCIÓN RESTAURADA Y MEJORADA VISUALMENTE: CONFIGURACIÓN --- */
 function openConfig() {
-  const c = document.getElementById('config-content'); c.innerHTML = '';
+  // Cargar estado de la nube
+  document.getElementById('cloud-toggle').checked = cloudSync.enabled;
+  document.getElementById('cloud-url-container').style.display = cloudSync.enabled ? 'block' : 'none';
+  document.getElementById('cloud-url').value = cloudSync.url || '';
+
+  const c = document.getElementById('config-content'); 
+  c.innerHTML = '';
   SPECS.forEach(e => {
-    c.innerHTML += `<div class="cfg-spec-block"><div class="cfg-spec-title">${e.nombre}</div><div class="cfg-add-row"><input id="in-${e.id}"><button onclick="addP('${e.id}')" style="width:50px">+</button></div><div style="display:flex;flex-wrap:wrap;gap:5px">${profesionales[e.id].map((p,i)=>`<span class="pill">${p} <b onclick="delP('${e.id}',${i})">×</b></span>`).join('')}</div></div>`;
+    c.innerHTML += `
+    <div class="cfg-spec-block">
+      <div class="cfg-spec-title">${e.nombre}</div>
+      <div class="cfg-add-row">
+        <input type="text" id="in-${e.id}" placeholder="Agregar profesional...">
+        <button class="cfg-add-btn" onclick="addP('${e.id}')">+</button>
+      </div>
+      <div class="pill-row" style="margin-top:4px;">
+        ${profesionales[e.id].map((p,i)=>`<span class="pill">${p} <b style="margin-left:6px; font-size:16px; font-weight:normal;" onclick="delP('${e.id}',${i})">×</b></span>`).join('')}
+      </div>
+    </div>`;
   });
   openModal('modal-config');
 }
@@ -582,7 +629,7 @@ function verDetalleEspecialidad(id) {
     document.getElementById('modal-detalle-title').textContent = "Historial: " + e.nombre;
     list = sesiones.filter(s => s.especId === id && s.accion !== ACTION_TAPON);
   }
-  cont.innerHTML = list.length > 0 ? list.reverse().map(s => htmlLogItem(s, true)).join('') : '<div class="empty-state">No hay registros.</div>';
+  cont.innerHTML = list.length > 0 ? list.reverse().map(s => htmlLogItem(s, true)).join('') : '<div style="text-align:center; color:var(--muted); padding:30px;">No hay registros.</div>';
   openModal('modal-detalle');
 }
 
