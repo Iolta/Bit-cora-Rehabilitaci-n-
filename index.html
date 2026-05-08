@@ -12,6 +12,7 @@
 <link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Bit%C3%A1cora%20Rehab%22%2C%22short_name%22%3A%22Rehab%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23111111%22%2C%22theme_color%22%3A%22%23111111%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%AB%81%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D'>
 
 <style>
+/* 1. SETUP & CORE DESIGN */
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
   --bg:#111111; --card:#1e1e1e; --card2:#252525; --border:#2e2e2e;
@@ -35,9 +36,9 @@ header {
   padding:16px 16px 13px; border-bottom:1px solid var(--border);
   position:sticky; top:0; background:var(--bg); z-index:200;
 }
-header .ico { font-size:22px; }
+header .header-btns { display: flex; gap: 8px; }
 header h1 { font-size:13px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; }
-.btn-cfg {
+.btn-head {
   background:var(--card); border:1px solid var(--border);
   border-radius:9px; padding:6px 10px; font-size:18px; cursor:pointer;
 }
@@ -64,13 +65,8 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
   text-transform:uppercase; color:var(--muted); margin-bottom:4px;
 }
 
-/* CARD */
-.card {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius); padding:16px;
-}
-
-/* SPEC GRID */
+/* CARD & GRID */
+.card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
 .spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .spec-card {
   background:var(--card); border:1px solid var(--border);
@@ -84,6 +80,7 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .spec-card .spec-count { font-size:11px; color:var(--muted); }
 .spec-card.active-spec { border-width:2px; }
 
+/* SPECIAL COLORS */
 .spec-kine   { border-color:#60a5fa33; } .spec-kine.active-spec   { border-color:var(--blue); }
 .spec-fono   { border-color:#4ade8033; } .spec-fono.active-spec   { border-color:var(--green); }
 .spec-to     { border-color:#c084fc33; } .spec-to.active-spec     { border-color:var(--purple); }
@@ -94,123 +91,54 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 
 /* STATS */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.stat-card {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius); padding:16px 14px;
-  display:flex; flex-direction:column; gap:4px;
-}
+.stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 14px; }
 .stat-label { font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
 .stat-value { font-size:24px; font-weight:700; }
-.stat-sub { font-size:11px; color:var(--muted); }
 
-/* CIRCULO TAPON */
-.tapon-circle-container { display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px; margin-bottom: 20px;}
-.tapon-circle {
-  width: 130px; height: 130px;
-  border-radius: 50%;
-  border: 3px solid var(--green);
-  background: var(--card);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; transition: transform 0.2s;
-  box-shadow: 0 4px 15px rgba(74, 222, 128, 0.1);
-}
-.tapon-circle:active { transform: scale(0.95); background: var(--card2); }
-.tapon-circle-val { font-size: 22px; font-weight: 700; color: var(--green); }
-.tapon-circle-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; text-align: center; }
-
-/* LOG */
+/* LOGS */
 .log-list { display:flex; flex-direction:column; gap:8px; }
-.log-item {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius); padding:14px 16px;
-  display:flex; align-items:flex-start; gap:12px;
-}
-.log-ico { font-size:22px; flex-shrink:0; margin-top:2px; }
+.log-item { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; display:flex; gap:12px; }
 .log-body { flex:1; display:flex; flex-direction:column; gap:3px; }
 .log-head { display:flex; justify-content:space-between; align-items:center; }
 .log-spec { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
-.log-time { font-size:11px; color:var(--muted); }
-.log-prof { font-size:13px; font-weight:600; }
-.log-action { font-size:12px; color:var(--muted); }
 .log-dur { font-size:12px; color:var(--green); font-weight:600; }
-.log-notes { font-size:12px; color:var(--muted); font-style:italic; margin-top:6px; border-top:1px solid var(--border); padding-top:6px; }
-.log-delete { background:none; border:none; color:var(--muted2); font-size:20px; cursor:pointer; padding:2px 4px; flex-shrink:0; }
+.log-delete { background:none; border:none; color:var(--muted2); font-size:20px; cursor:pointer; }
 
-/* PROGRESS */
-.progress-row { display:flex; flex-direction:column; gap:10px; }
-.prog-item { display:flex; flex-direction:column; gap:4px; }
-.prog-head { display:flex; justify-content:space-between; }
-.prog-name { font-size:12px; font-weight:600; }
-.prog-val { font-size:12px; color:var(--muted); }
-.prog-bar { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
-.prog-fill { height:100%; border-radius:3px; transition:width .4s ease; }
-
-/* EMPTY */
-.empty-state { text-align:center; color:var(--muted); padding:40px 20px; font-size:13px; line-height:1.8; }
-.empty-ico { font-size:40px; margin-bottom:12px; }
-
-/* OVERLAY / MODAL */
-.overlay {
-  position:fixed; inset:0; background:#000000cc;
-  z-index:500; display:flex; align-items:flex-end;
-  opacity:0; pointer-events:none; transition:opacity .2s;
+/* TAPON CIRCLE */
+.tapon-circle-container { display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px; }
+.tapon-circle {
+  width: 130px; height: 130px; border-radius: 50%; border: 3px solid var(--green);
+  background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform 0.2s;
 }
+.tapon-circle:active { transform: scale(0.95); }
+.tapon-circle-val { font-size: 22px; font-weight: 700; color: var(--green); }
+
+/* MODALS */
+.overlay { position:fixed; inset:0; background:#000000cc; z-index:500; display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity .2s; }
 .overlay.open { opacity:1; pointer-events:all; }
 .modal {
-  background:#1a1a1a; border:1px solid var(--border);
-  border-radius:20px 20px 0 0; width:100%; max-width:480px;
-  margin:0 auto; padding:24px 20px 40px;
+  background:#1a1a1a; border:1px solid var(--border); border-radius:20px 20px 0 0;
+  width:100%; max-width:480px; margin:0 auto; padding:24px 20px 40px;
   transform:translateY(100%); transition:transform .3s ease;
-  max-height:90vh; overflow-y:auto;
-  display:flex; flex-direction:column; gap:14px;
+  max-height:90vh; overflow-y:auto; display:flex; flex-direction:column; gap:14px;
 }
 .overlay.open .modal { transform:translateY(0); }
-.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto -4px; }
-.modal-title { font-size:14px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; text-align:center; padding-bottom:8px; border-bottom:1px solid var(--border); }
 
-/* FORM */
+/* INSTRUCTIVO DESIGN */
+.guide-item { display: flex; gap: 15px; background: var(--card2); padding: 15px; border-radius: 12px; border-left: 4px solid var(--blue); }
+.guide-ico { font-size: 24px; flex-shrink: 0; }
+.guide-text h4 { font-size: 14px; margin-bottom: 4px; color: var(--text); }
+.guide-text p { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* FORMS */
 label { font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
-select, input[type="text"], input[type="number"], input[type="url"], textarea {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:10px; color:var(--text); padding:13px 14px;
-  font-size:15px; width:100%; font-family:inherit; outline:none;
-  transition:border-color .15s; appearance:none;
-}
-select:focus, input:focus, textarea:focus { border-color:var(--green); }
-textarea { resize:none; min-height:80px; }
-select option { background:#1e1e1e; }
-
+input, textarea, select { background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:13px 14px; font-size:15px; width:100%; outline:none; }
 .pill-row { display:flex; flex-wrap:wrap; gap:8px; }
-.pill {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:20px; padding:7px 14px; font-size:12px; font-weight:600;
-  cursor:pointer; transition:all .15s; white-space:nowrap; user-select:none;
-}
+.pill { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; }
 .pill.sel { background:var(--green); border-color:var(--green); color:#000; }
-.pill:active { transform:scale(.95); }
-
-.btn-primary {
-  background:var(--green); color:#000; border:none; border-radius:12px;
-  padding:15px; font-size:14px; font-weight:700; letter-spacing:.08em;
-  text-transform:uppercase; cursor:pointer; width:100%;
-}
-.btn-primary:active { opacity:.8; }
-.btn-secondary {
-  background:var(--card); color:var(--text); border:1px solid var(--border);
-  border-radius:12px; padding:13px; font-size:13px; font-weight:600;
-  cursor:pointer; width:100%;
-}
-
-/* CONFIG */
-.cfg-spec-block { display:flex; flex-direction:column; gap:8px; }
-.cfg-spec-title { font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:6px; }
-.cfg-prof-list { display:flex; flex-direction:column; gap:6px; }
-.cfg-prof-row { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
-.cfg-prof-name { flex:1; font-size:14px; }
-.cfg-prof-del { background:none; border:none; color:var(--muted2); font-size:20px; cursor:pointer; }
-.cfg-add-row { display:flex; gap:8px; }
-.cfg-add-row input { flex:1; }
-.cfg-add-btn { background:var(--green); color:#000; border:none; border-radius:10px; padding:0 18px; font-size:22px; font-weight:700; cursor:pointer; flex-shrink:0; }
+.btn-primary { background:var(--green); color:#000; border:none; border-radius:12px; padding:15px; font-size:14px; font-weight:700; text-transform:uppercase; width:100%; cursor:pointer; }
+.btn-secondary { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:13px; font-size:13px; width:100%; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -218,7 +146,10 @@ select option { background:#1e1e1e; }
 <header>
   <span class="ico">🫁</span>
   <h1>Bitácora · Rehab</h1>
-  <button class="btn-cfg" onclick="openConfig()">⚙️</button>
+  <div class="header-btns">
+    <button class="btn-head" onclick="openModal('modal-ayuda')">❓</button>
+    <button class="btn-head" onclick="openConfig()">⚙️</button>
+  </div>
 </header>
 
 <nav>
@@ -232,10 +163,50 @@ select option { background:#1e1e1e; }
 
 <input type="file" id="import-input" style="display:none" onchange="procesarCSV(event)">
 
+<div class="overlay" id="modal-ayuda">
+  <div class="modal">
+    <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 10px"></div>
+    <div style="font-size:14px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:10px">Guía de Uso</div>
+    
+    <div class="guide-item" style="border-left-color: var(--orange);">
+      <div class="guide-ico">⚙️</div>
+      <div class="guide-text">
+        <h4>1. Cargá a tus profesionales</h4>
+        <p>Antes de empezar, tocá el engranaje <b>⚙️</b> y agregá los nombres de quienes te atienden en cada especialidad.</p>
+      </div>
+    </div>
+
+    <div class="guide-item" style="border-left-color: var(--blue);">
+      <div class="guide-ico">📝</div>
+      <div class="guide-text">
+        <h4>2. Registrá tu actividad</h4>
+        <p>Tocá la especialidad (ej: 🦵 Kine) para anotar qué hicieron y cuánto duró. Todo queda guardado en tu historial.</p>
+      </div>
+    </div>
+
+    <div class="guide-item" style="border-left-color: var(--green);">
+      <div class="guide-ico">⏱️</div>
+      <div class="guide-text">
+        <h4>3. Prueba de Tapón</h4>
+        <p>Tocá el reloj para iniciar el tiempo de cánula tapada. Volvé a tocarlo al terminar. Se mide por separado para ver tu progreso.</p>
+      </div>
+    </div>
+
+    <div class="guide-item" style="border-left-color: var(--red);">
+      <div class="guide-ico">🚨</div>
+      <div class="guide-text">
+        <h4>4. Protegé tus datos</h4>
+        <p>Tus datos son privados y viven en este teléfono. Una vez por semana, ve a "Historial" y usá <b>📥 Exportar CSV</b> para tener un respaldo.</p>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="closeModal('modal-ayuda')" style="margin-top:10px">ENTENDIDO</button>
+  </div>
+</div>
+
 <div class="overlay" id="modal-spec">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">¿Con qué especialidad?</div>
+    <div style="font-size:14px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:10px">¿Qué especialidad?</div>
     <div class="spec-grid" id="spec-grid-picker"></div>
     <button class="btn-secondary" onclick="closeModal('modal-spec')">Cancelar</button>
   </div>
@@ -243,63 +214,60 @@ select option { background:#1e1e1e; }
 
 <div class="overlay" id="modal-detalle">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-detalle-title">Historial</div>
-    <div id="modal-detalle-content" class="log-list" style="margin-bottom: 14px;"></div>
+    <div id="modal-detalle-title" style="font-size:14px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:10px">Historial</div>
+    <div id="modal-detalle-content" class="log-list"></div>
     <button class="btn-secondary" onclick="closeModal('modal-detalle')">Cerrar</button>
   </div>
 </div>
 
 <div class="overlay" id="modal-sesion">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-sesion-title">Nueva Sesión</div>
+    <div id="modal-sesion-title" style="font-size:14px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:10px">Nueva Sesión</div>
     <label>Profesionales</label>
     <div class="pill-row" id="prof-pills"></div>
-    <label>Acción / Actividad</label>
+    <label>Actividad</label>
     <div class="pill-row" id="action-pills"></div>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <input type="text" id="custom-action" placeholder="Nueva acción…">
-      <button onclick="agregarAccionPersonalizada()">+</button>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="custom-action" placeholder="Otra acción...">
+      <button onclick="agregarAccionPersonalizada()" style="width:50px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:10px">+</button>
     </div>
     <label>Duración</label>
     <div class="pill-row" id="dur-pills">
-      <span class="pill" onclick="selDur(this,'5')">5m</span>
       <span class="pill" onclick="selDur(this,'15')">15m</span>
       <span class="pill" onclick="selDur(this,'30')">30m</span>
+      <span class="pill" onclick="selDur(this,'45')">45m</span>
       <span class="pill" onclick="selDur(this,'60')">1h</span>
-      <span class="pill" onclick="selDur(this,'120')">2h</span>
     </div>
-    <input type="number" id="custom-dur" placeholder="Minutos...">
+    <input type="number" id="custom-dur" placeholder="O indicar minutos...">
     <label>Notas</label>
-    <textarea id="session-notes"></textarea>
-    <button class="btn-primary" onclick="guardarSesion()">GUARDAR SESIÓN</button>
+    <textarea id="session-notes" placeholder="Tolerancia, oxigenación, etc..."></textarea>
+    <button class="btn-primary" onclick="guardarSesion()">GUARDAR</button>
     <button class="btn-secondary" onclick="closeModal('modal-sesion')">Cancelar</button>
   </div>
 </div>
 
 <div class="overlay" id="modal-config">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Configuración</div>
-    <button class="btn-secondary" onclick="document.getElementById('import-input').click()">📥 Restaurar CSV</button>
+    <div style="font-size:14px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:10px">Configuración</div>
+    <button class="btn-secondary" onclick="document.getElementById('import-input').click()">📥 RESTAURAR DESDE CSV</button>
+    
     <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin:10px 0;">
       <label style="display:flex; align-items:center; gap:10px; color:var(--text); text-transform:none;">
         <input type="checkbox" id="cloud-toggle" onchange="toggleCloudSync()"> Google Sheets Sync
       </label>
       <div id="cloud-url-container" style="display:none; margin-top:10px;">
-        <input type="url" id="cloud-url" placeholder="Link de Web App..." oninput="saveCloudUrl()">
+        <input type="url" id="cloud-url" placeholder="URL Web App..." oninput="saveCloudUrl()">
       </div>
     </div>
-    <div id="config-content"></div>
+
+    <div id="config-content" style="display:flex; flex-direction:column; gap:15px"></div>
     <button class="btn-primary" onclick="closeModal('modal-config')">LISTO</button>
   </div>
 </div>
 
 <script>
-/* ─── CONSTANTES ─── */
+/* ─── LOGICA DE LA APP ─── */
 const ACTION_TAPON = 'Entrenamiento con cánula tapada';
-
 const SPECS = [
   { id:'kine',  nombre:'Kinesiología',       ico:'🦵', css:'spec-kine',  color:'#60a5fa', acciones:['Ejercicios respiratorios','Movilización activa','Aspiración'] },
   { id:'fono',  nombre:'Fonoaudiología',      ico:'🗣️', css:'spec-fono',  color:'#4ade80', acciones:['Evaluación de deglución','Ejercicios vocales','Válvula fonatoria'] },
@@ -310,7 +278,6 @@ const SPECS = [
   { id:'med',   nombre:'Medicina General',     ico:'🩺', css:'spec-med',   color:'#e2e8f0', acciones:['Consulta evolución','Ajuste medicación'] },
 ];
 
-/* ─── ESTADO ─── */
 let sesiones = [];
 let profesionales = {};
 let accionesPersonalizadas = {};
@@ -320,20 +287,15 @@ let durActual = null;
 let taponInicio = localStorage.getItem('rehab_tapon_inicio') || null;
 let taponInterval = null;
 
-/* ─── CARGAR / GUARDAR ─── */
 function cargar() {
-  try {
-    const raw = localStorage.getItem('rehab_bitacora_v1');
-    if (raw) {
-      const d = JSON.parse(raw);
-      sesiones = Array.isArray(d.sesiones) ? d.sesiones : [];
-      profesionales = d.profesionales || {};
-      accionesPersonalizadas = d.accionesPersonalizadas || {};
-      cloudSync = d.cloudSync || { enabled: false, url: '' };
-    }
-  } catch(e) { sesiones = []; }
-  
-  sesiones = sesiones.filter(s => s && typeof s === 'object');
+  const raw = localStorage.getItem('rehab_bitacora_v1');
+  if (raw) {
+    const d = JSON.parse(raw);
+    sesiones = d.sesiones || [];
+    profesionales = d.profesionales || {};
+    accionesPersonalizadas = d.accionesPersonalizadas || {};
+    cloudSync = d.cloudSync || { enabled: false, url: '' };
+  }
   SPECS.forEach(e => {
     if (!profesionales[e.id]) profesionales[e.id] = [];
     if (!accionesPersonalizadas[e.id]) accionesPersonalizadas[e.id] = [];
@@ -345,50 +307,37 @@ function guardar() {
   localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas, cloudSync }));
 }
 
-/* ─── NUBE ─── */
-function enviarNube(sesion) {
+function enviarNube(s) {
   if (!cloudSync.enabled || !cloudSync.url) return;
-  const e = SPECS.find(x => x.id === sesion.especId) || { nombre: 'Desconocida' };
-  const payload = {
-    fecha: sesion.fecha, hora: sesion.hora, especialidad: (sesion.accion === ACTION_TAPON ? "Prueba de Tapón" : e.nombre),
-    profesionales: sesion.profesionales.join(' / '), accion: sesion.accion, duracion: sesion.duracion, notas: sesion.notes || ''
-  };
-  fetch(cloudSync.url, { method:'POST', mode:'no-cors', body:JSON.stringify(payload) }).catch(e => console.log(e));
+  const e = SPECS.find(x => x.id === s.especId) || { nombre: '---' };
+  const payload = { fecha:s.fecha, hora:s.hora, especialidad:(s.accion === ACTION_TAPON ? "Tapón" : e.nombre), profesionales:s.profesionales.join('/'), accion:s.accion, duracion:s.duracion, notas:s.notas||'' };
+  fetch(cloudSync.url, { method:'POST', mode:'no-cors', body:JSON.stringify(payload) }).catch(() => {});
 }
 
-/* ─── IMPORTAR ─── */
 function procesarCSV(event) {
-    const file = event.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const lines = e.target.result.split(/\r?\n/);
-            const separator = lines[0].includes(';') ? ';' : ',';
-            for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                let clean = lines[i].split(separator).map(v => v.replace(/^"|"$/g, '').trim());
-                let spec = SPECS.find(s => s.nombre.toLowerCase() === (clean[2]||'').toLowerCase()) || {id:'med'};
-                sesiones.push({
-                    id: Date.now()+i, fecha: clean[0], hora: clean[1], especId: spec.id,
-                    profesionales: (clean[3]||'').split('/').map(p=>p.trim()),
-                    accion: clean[4], duracion: parseInt(clean[5])||15, notas: clean[6]||null
-                });
-            }
-            guardar(); render(); alert('Datos restaurados.');
-        } catch(err) { alert('Error al leer CSV'); }
-    };
-    reader.readAsText(file);
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines = e.target.result.split(/\r?\n/);
+    const separator = lines[0].includes(';') ? ';' : ',';
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      let c = lines[i].split(separator).map(v => v.replace(/^"|"$/g, '').trim());
+      let spec = SPECS.find(s => s.nombre.toLowerCase() === (c[2]||'').toLowerCase()) || {id:'med'};
+      sesiones.push({ id:Date.now()+i, fecha:c[0], hora:c[1], especId:spec.id, profesionales:(c[3]||'').split('/').map(p=>p.trim()), accion:c[4], duracion:parseInt(c[5])||15, notas:c[6]||null });
+    }
+    guardar(); render(); alert('Importación exitosa');
+  };
+  reader.readAsText(file);
 }
 
-/* ─── CRONÓMETRO ─── */
 function updateTaponDisplay() {
   if (!taponInicio || tabActual !== 'hoy') return;
   const diff = Date.now() - parseInt(taponInicio);
   const s = Math.floor(diff/1000);
   const h = Math.floor(s/3600);
   const m = Math.floor((s%3600)/60);
-  const seg = s%60;
-  const txt = (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(seg).padStart(2,'0');
+  const txt = (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
   const el = document.getElementById('tapon-time'); if(el) el.textContent = txt;
 }
 
@@ -396,10 +345,7 @@ function toggleTapon() {
   if (taponInicio) {
     const min = Math.max(1, Math.round((Date.now()-parseInt(taponInicio))/60000));
     if (confirm(`¿Finalizar prueba de tapón de ${formatMin(min)}?`)) {
-      const s = {
-        id: Date.now(), fecha: keyHoy(), hora: new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
-        especId: 'fono', profesionales: ['Auto-Registro'], accion: ACTION_TAPON, duracion: min, notas: 'Prueba cronometrada'
-      };
+      const s = { id:Date.now(), fecha:keyHoy(), hora:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}), especId:'fono', profesionales:['Auto-Registro'], accion:ACTION_TAPON, duracion:min, notas:'' };
       sesiones.push(s); guardar(); enviarNube(s);
       taponInicio = null; localStorage.removeItem('rehab_tapon_inicio');
       clearInterval(taponInterval); render();
@@ -410,7 +356,6 @@ function toggleTapon() {
   }
 }
 
-/* ─── RENDER ─── */
 let tabActual = 'hoy';
 function switchTab(t, b) {
   tabActual = t;
@@ -427,158 +372,63 @@ function render() {
   else if (tabActual === 'resumen') app.innerHTML = vistaResumen();
 }
 
-/* ─── VISTA HOY ─── */
 function vistaHoy() {
   const hoy = keyHoy();
   const sesHoy = sesiones.filter(s => s.fecha === hoy);
-  
-  const sesHoyRehab = sesHoy.filter(s => s.accion !== ACTION_TAPON);
-  const totalMinRehab = sesHoyRehab.reduce((a,s) => a + s.duracion, 0);
-
-  let h = `
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Sesiones Activas</div><div class="stat-value" style="color:var(--green)">${sesHoyRehab.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Tiempo Activo</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMinRehab)}</div></div>
-  </div>
-  <div class="spec-grid" style="margin-top:14px">`;
-  
+  const rehabHoy = sesHoy.filter(s => s.accion !== ACTION_TAPON);
+  const totalMin = rehabHoy.reduce((a,s) => a + s.duracion, 0);
+  let h = `<div class="stats-grid"><div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value">${rehabHoy.length}</div></div><div class="stat-card"><div class="stat-label">Tiempo</div><div class="stat-value">${formatMin(totalMin)}</div></div></div><div class="spec-grid">`;
   SPECS.forEach(e => {
     const cnt = sesHoy.filter(s => s.especId === e.id && s.accion !== ACTION_TAPON).length;
-    h += `<div class="spec-card ${e.css} ${cnt>0?'active-spec':''}" onclick="abrirSesion('${e.id}')">
-      <div class="spec-ico">${e.ico}</div><div class="spec-name">${e.nombre}</div><div class="spec-count">${cnt>0?cnt+' ses.':'---'}</div>
-    </div>`;
+    h += `<div class="spec-card ${e.css} ${cnt>0?'active-spec':''}" onclick="abrirSesion('${e.id}')"><div class="spec-ico">${e.ico}</div><div class="spec-name">${e.nombre}</div><div class="spec-count">${cnt>0?cnt+' ses.':'---'}</div></div>`;
   });
-  
-  h += `<div class="spec-card" onclick="toggleTapon()" style="border-color:${taponInicio?'var(--green)':'var(--border)'}">
-    <div class="spec-ico">⏱️</div><div class="spec-name">${taponInicio?'Tapón Activo':'Prueba Tapón'}</div><div class="spec-count" id="tapon-time">00:00</div>
-  </div></div>`;
-  
-  if(sesHoy.length > 0) {
-    h += `<div class="sec-title" style="margin-top:14px">Registro de hoy</div>`;
-    h += `<div class="log-list">${sesHoy.reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
-  }
+  h += `<div class="spec-card" onclick="toggleTapon()" style="border-color:${taponInicio?'var(--green)':'var(--border)'}"><div class="spec-ico">⏱️</div><div class="spec-name">${taponInicio?'Activo':'Tapón'}</div><div class="spec-count" id="tapon-time">00:00</div></div></div>`;
+  if(sesHoy.length) h += `<div class="log-list">${sesHoy.reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
   return h;
 }
 
-/* ─── VISTA HISTORIAL ─── */
 function vistaHistorial() {
   const porF = {}; sesiones.forEach(s => { if(!porF[s.fecha]) porF[s.fecha]=[]; porF[s.fecha].push(s); });
-  let h = `<button class="btn-secondary" onclick="exportarCSV()">📥 Exportar CSV</button>`;
+  let h = `<button class="btn-secondary" onclick="exportarCSV()">📥 EXPORTAR CSV</button>`;
   Object.keys(porF).sort().reverse().forEach(f => {
-    const activasDelDia = porF[f].filter(s => s.accion !== ACTION_TAPON);
-    const t = activasDelDia.reduce((a,s)=>a+s.duracion,0);
-    
-    h += `<div class="sec-title" style="margin-top:15px">${f} · ${formatMin(t)} activos · ${activasDelDia.length} ses.</div>
-    <div class="log-list">${porF[f].reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
+    const minAct = porF[f].filter(s=>s.accion!==ACTION_TAPON).reduce((a,s)=>a+s.duracion,0);
+    h += `<div class="sec-title" style="margin-top:15px">${f} · ${formatMin(minAct)}</div><div class="log-list">${porF[f].reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
   });
   return h;
 }
 
-/* ─── VISTA RESUMEN ─── */
 function vistaResumen() {
-  const stats = { tapon: {count:0, min:0} };
-  SPECS.forEach(e => stats[e.id] = {count:0, min:0});
-  
-  let totalMinRehab = 0;
-  let totalSesionesRehab = 0;
-
+  const st = { tapon: {min:0} }; SPECS.forEach(e => st[e.id] = {min:0});
+  let totMin = 0, totSes = 0;
   sesiones.forEach(s => {
-    if (s.accion === ACTION_TAPON) {
-      stats.tapon.count++;
-      stats.tapon.min += s.duracion;
-    } else {
-      if (stats[s.especId]) {
-        stats[s.especId].count++;
-        stats[s.especId].min += s.duracion;
-      }
-      totalMinRehab += s.duracion;
-      totalSesionesRehab++;
-    }
+    if(s.accion === ACTION_TAPON) st.tapon.min += s.duracion;
+    else { st[s.especId].min += s.duracion; totMin += s.duracion; totSes++; }
   });
-
-  // MAGIA ACÁ: Buscamos el máximo SOLO entre las especialidades activas (ignoramos al tapón)
-  const maxM = Math.max(...SPECS.map(e => stats[e.id].min), 1);
-
-  let h = `
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Total Sesiones</div><div class="stat-value">${totalSesionesRehab}</div><div class="stat-sub">activas</div></div>
-    <div class="stat-card"><div class="stat-label">Tiempo Acumulado</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMinRehab)}</div><div class="stat-sub">activo</div></div>
-  </div>
-  
-  <div class="sec-title" style="margin-top:16px">Terapias Activas</div>
-  <div class="card"><div class="progress-row">`;
-
-  // Renderizamos SOLO las barras de las terapias activas
+  const maxM = Math.max(...SPECS.map(e => st[e.id].min), 1);
+  let h = `<div class="stats-grid"><div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value">${totSes}</div></div><div class="stat-card"><div class="stat-label">Tiempo</div><div class="stat-value">${formatMin(totMin)}</div></div></div><div class="card"><div class="progress-row">`;
   SPECS.forEach(e => {
-    const v = stats[e.id];
-    h += `<div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer">
-      <div class="prog-head"><div class="prog-name">${e.ico} ${e.nombre}</div><div class="prog-val">${formatMin(v.min)}</div></div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${(v.min/maxM)*100}%; background:${e.color}"></div></div>
-    </div>`;
+    const v = st[e.id];
+    h += `<div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer"><div class="prog-head"><div class="prog-name">${e.ico} ${e.nombre}</div><div class="prog-val">${formatMin(v.min)}</div></div><div class="prog-bar"><div class="prog-fill" style="width:${(v.min/maxM)*100}%; background:${e.color}"></div></div></div>`;
   });
-  h += `</div></div>`;
-
-  // SECTOR AISLADO PARA EL TAPÓN (El Círculo)
-  h += `
-  <div class="tapon-circle-container">
-    <div class="sec-title" style="margin-bottom:8px">Entrenamiento Pasivo</div>
-    <div class="tapon-circle" onclick="verDetalleEspecialidad('tapon_especial')">
-      <div style="font-size:24px; margin-bottom:4px;">⏱️</div>
-      <div class="tapon-circle-val">${formatMin(stats.tapon.min)}</div>
-      <div class="tapon-circle-lbl">${stats.tapon.count} pruebas</div>
-    </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:8px;">Tocá el círculo para ver el historial</div>
-  </div>
-  `;
-
+  h += `</div></div><div class="tapon-circle-container"><div class="tapon-circle" onclick="verDetalleEspecialidad('tapon_especial')"><div class="tapon-circle-val">${formatMin(st.tapon.min)}</div><div class="tapon-circle-lbl">TIEMPO TOTAL<br>TAPÓN</div></div></div>`;
   return h;
 }
 
-function verDetalleEspecialidad(id) {
-  const cont = document.getElementById('modal-detalle-content');
-  let list = [];
-  if (id === 'tapon_especial') {
-    document.getElementById('modal-detalle-title').textContent = "Historial: Pruebas de Tapón";
-    list = sesiones.filter(s => s.accion === ACTION_TAPON);
-  } else {
-    const e = SPECS.find(x => x.id === id);
-    document.getElementById('modal-detalle-title').textContent = "Historial: " + e.nombre;
-    list = sesiones.filter(s => s.especId === id && s.accion !== ACTION_TAPON);
-  }
-  cont.innerHTML = list.reverse().map(s => htmlLogItem(s, true)).join('');
-  openModal('modal-detalle');
-}
-
-/* ─── UTILS ─── */
-function formatMin(m) {
-  const h = Math.floor(m/60); const min = m%60;
-  if(h===0) return min+'m';
-  return h+'h'+(min>0?' '+min+'m':'');
-}
-function htmlLogItem(s, showDate=false) {
-  const e = SPECS.find(x => x.id === s.especId) || {ico:'?', color:'#fff', nombre:'---'};
-  return `<div class="log-item">
-    <div class="log-ico">${s.accion === ACTION_TAPON ? '⏱️' : e.ico}</div>
-    <div class="log-body">
-      <div class="log-head">
-        <div class="log-spec" style="color:${s.accion === ACTION_TAPON ? 'var(--green)' : e.color}">${s.accion === ACTION_TAPON ? 'Tapón' : e.nombre}</div>
-        <div class="log-time">${showDate?s.fecha+' ':''}${s.hora}</div>
-      </div>
-      <div class="log-prof">${s.profesionales.join(', ')}</div>
-      <div class="log-action">${s.accion}</div>
-      <div class="log-dur">⏱ ${formatMin(s.duracion)}</div>
-      ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
-    </div>
-    <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
-  </div>`;
-}
+function formatMin(m) { const h = Math.floor(m/60), min = m%60; return h===0 ? min+'m' : h+'h'+(min>0?' '+min+'m':''); }
 function keyHoy() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function htmlLogItem(s) {
+  const e = SPECS.find(x => x.id === s.especId) || {ico:'?', color:'#fff', nombre:'---'};
+  return `<div class="log-item"><div class="log-ico">${s.accion === ACTION_TAPON ? '⏱️' : e.ico}</div><div class="log-body"><div class="log-head"><div class="log-spec" style="color:${s.accion===ACTION_TAPON?'var(--green)':e.color}">${s.accion===ACTION_TAPON?'Tapón':e.nombre}</div><div class="log-time">${s.hora}</div></div><div class="log-prof">${s.profesionales.join(', ')}</div><div class="log-action">${s.accion}</div><div class="log-dur">⏱ ${formatMin(s.duracion)}</div></div><button class="log-delete" onclick="borrarSesion(${s.id})">×</button></div>`;
+}
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function borrarSesion(id) { if(confirm('¿Eliminar?')){ sesiones=sesiones.filter(s=>s.id!==id); guardar(); render(); } }
 
-/* ─── FORMULARIO ─── */
-function abrirSelectorSpec() { openModal('modal-spec'); }
+function abrirSelectorSpec() { 
+  const p = document.getElementById('spec-grid-picker');
+  p.innerHTML = SPECS.map(e => `<div class="spec-card ${e.css}" onclick="pickSpec('${e.id}')"><div class="spec-ico">${e.ico}</div><div class="spec-name">${e.nombre}</div></div>`).join('');
+  openModal('modal-spec'); 
+}
 function pickSpec(id) { closeModal('modal-spec'); abrirSesion(id); }
 function abrirSesion(id) {
   specActual = id; const e = SPECS.find(x => x.id === id);
@@ -589,21 +439,16 @@ function abrirSesion(id) {
 }
 function selDur(el, v) { document.querySelectorAll('#dur-pills .pill').forEach(p=>p.classList.remove('sel')); el.classList.add('sel'); durActual = v; }
 function guardarSesion() {
-  const p = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(x=>x.textContent);
-  const a = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(x=>x.textContent);
-  const d = parseInt(durActual || document.getElementById('custom-dur').value);
+  const p = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(x=>x.textContent), a = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(x=>x.textContent), d = parseInt(durActual || document.getElementById('custom-dur').value);
   if(!a.length || !d) return alert('Faltan datos');
   const s = { id:Date.now(), fecha:keyHoy(), hora:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}), especId:specActual, profesionales:p, accion:a.join(' · '), duracion:d, notas:document.getElementById('session-notes').value };
   sesiones.push(s); guardar(); enviarNube(s); closeModal('modal-sesion'); switchTab('hoy');
 }
 
-/* ─── CONFIG ─── */
 function openConfig() {
   const c = document.getElementById('config-content'); c.innerHTML = '';
   SPECS.forEach(e => {
-    c.innerHTML += `<div class="cfg-spec-block"><div class="cfg-spec-title">${e.nombre}</div>
-    <div class="cfg-add-row"><input id="in-${e.id}"><button onclick="addP('${e.id}')">+</button></div>
-    <div>${profesionales[e.id].map((p,i)=>`<span>${p} <button onclick="delP('${e.id}',${i})">x</button></span>`).join(' ')}</div></div>`;
+    c.innerHTML += `<div class="cfg-spec-block"><div class="cfg-spec-title">${e.nombre}</div><div class="cfg-add-row"><input id="in-${e.id}"><button onclick="addP('${e.id}')" style="width:50px">+</button></div><div style="display:flex;flex-wrap:wrap;gap:5px">${profesionales[e.id].map((p,i)=>`<span class="pill">${p} <b onclick="delP('${e.id}',${i})">×</b></span>`).join('')}</div></div>`;
   });
   openModal('modal-config');
 }
