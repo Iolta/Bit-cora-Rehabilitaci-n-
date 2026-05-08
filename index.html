@@ -318,7 +318,6 @@ function cargar() {
     }
   } catch(e) { sesiones = []; }
   
-  // Sanador
   sesiones = sesiones.filter(s => s && typeof s === 'object');
   SPECS.forEach(e => {
     if (!profesionales[e.id]) profesionales[e.id] = [];
@@ -413,66 +412,88 @@ function render() {
   else if (tabActual === 'resumen') app.innerHTML = vistaResumen();
 }
 
+/* ─── VISTA HOY ─── */
 function vistaHoy() {
   const hoy = keyHoy();
   const sesHoy = sesiones.filter(s => s.fecha === hoy);
-  const totalMin = sesHoy.reduce((a,s) => a + s.duracion, 0);
+  
+  // FILTRO: Ignoramos el tapón para las estadísticas generales diarias
+  const sesHoyRehab = sesHoy.filter(s => s.accion !== ACTION_TAPON);
+  const totalMinRehab = sesHoyRehab.reduce((a,s) => a + s.duracion, 0);
+
   let h = `
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value" style="color:var(--green)">${sesHoy.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Tiempo Total</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div></div>
+    <div class="stat-card"><div class="stat-label">Sesiones Activas</div><div class="stat-value" style="color:var(--green)">${sesHoyRehab.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Tiempo Activo</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMinRehab)}</div></div>
   </div>
-  <div class="spec-grid">`;
+  <div class="spec-grid" style="margin-top:14px">`;
+  
   SPECS.forEach(e => {
-    const cnt = sesHoy.filter(s => s.especId === e.id).length;
+    // Acá sí contamos las sesiones para pintar el cuadradito si hubo actividad
+    const cnt = sesHoy.filter(s => s.especId === e.id && s.accion !== ACTION_TAPON).length;
     h += `<div class="spec-card ${e.css} ${cnt>0?'active-spec':''}" onclick="abrirSesion('${e.id}')">
       <div class="spec-ico">${e.ico}</div><div class="spec-name">${e.nombre}</div><div class="spec-count">${cnt>0?cnt+' ses.':'---'}</div>
     </div>`;
   });
+  
   h += `<div class="spec-card" onclick="toggleTapon()" style="border-color:${taponInicio?'var(--green)':'var(--border)'}">
     <div class="spec-ico">⏱️</div><div class="spec-name">${taponInicio?'Tapón Activo':'Prueba Tapón'}</div><div class="spec-count" id="tapon-time">00:00</div>
   </div></div>`;
-  if(sesHoy.length > 0) h += `<div class="log-list" style="margin-top:10px">${sesHoy.reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
+  
+  if(sesHoy.length > 0) {
+    h += `<div class="sec-title" style="margin-top:14px">Registro de hoy</div>`;
+    h += `<div class="log-list">${sesHoy.reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
+  }
   return h;
 }
 
+/* ─── VISTA HISTORIAL ─── */
 function vistaHistorial() {
   const porF = {}; sesiones.forEach(s => { if(!porF[s.fecha]) porF[s.fecha]=[]; porF[s.fecha].push(s); });
   let h = `<button class="btn-secondary" onclick="exportarCSV()">📥 Exportar CSV</button>`;
   Object.keys(porF).sort().reverse().forEach(f => {
-    const t = porF[f].reduce((a,s)=>a+s.duracion,0);
-    h += `<div class="sec-title" style="margin-top:15px">${f} · ${formatMin(t)}</div>
+    // FILTRO: Solo sumamos minutos de sesiones que NO son tapón para el encabezado del día
+    const activasDelDia = porF[f].filter(s => s.accion !== ACTION_TAPON);
+    const t = activasDelDia.reduce((a,s)=>a+s.duracion,0);
+    
+    h += `<div class="sec-title" style="margin-top:15px">${f} · ${formatMin(t)} activos · ${activasDelDia.length} ses.</div>
     <div class="log-list">${porF[f].reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
   });
   return h;
 }
 
-/* ─── RESUMEN (MODIFICADO) ─── */
+/* ─── VISTA RESUMEN ─── */
 function vistaResumen() {
   const stats = { tapon: {count:0, min:0} };
   SPECS.forEach(e => stats[e.id] = {count:0, min:0});
   
+  let totalMinRehab = 0;
+  let totalSesionesRehab = 0;
+
   sesiones.forEach(s => {
     if (s.accion === ACTION_TAPON) {
       stats.tapon.count++;
       stats.tapon.min += s.duracion;
-    } else if (stats[s.especId]) {
-      stats[s.especId].count++;
-      stats[s.especId].min += s.duracion;
+    } else {
+      if (stats[s.especId]) {
+        stats[s.especId].count++;
+        stats[s.especId].min += s.duracion;
+      }
+      totalMinRehab += s.duracion;
+      totalSesionesRehab++;
     }
   });
 
-  const totalMin = sesiones.reduce((a,s) => a + s.duracion, 0);
   const maxM = Math.max(...Object.values(stats).map(v => v.min), 1);
 
   let h = `
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Total Sesiones</div><div class="stat-value">${sesiones.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Tiempo Acumulado</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Sesiones</div><div class="stat-value">${totalSesionesRehab}</div><div class="stat-sub">activas</div></div>
+    <div class="stat-card"><div class="stat-label">Tiempo Acumulado</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMinRehab)}</div><div class="stat-sub">activo</div></div>
   </div>
   <div class="card" style="margin-top:10px"><div class="progress-row">
     <div class="prog-item" onclick="verDetalleEspecialidad('tapon_especial')" style="cursor:pointer">
-      <div class="prog-head"><div class="prog-name">⏱️ Prueba de Tapón</div><div class="prog-val">${formatMin(stats.tapon.min)}</div></div>
+      <div class="prog-head"><div class="prog-name">⏱️ Prueba de Tapón</div><div class="prog-val" style="color:var(--green); font-weight:bold">${formatMin(stats.tapon.min)}</div></div>
       <div class="prog-bar"><div class="prog-fill" style="width:${(stats.tapon.min/maxM)*100}%; background:var(--green)"></div></div>
     </div>`;
 
@@ -520,6 +541,7 @@ function htmlLogItem(s, showDate=false) {
       <div class="log-prof">${s.profesionales.join(', ')}</div>
       <div class="log-action">${s.accion}</div>
       <div class="log-dur">⏱ ${formatMin(s.duracion)}</div>
+      ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
     </div>
     <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
   </div>`;
