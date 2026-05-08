@@ -385,13 +385,13 @@ function enviarNube(sesion) {
 
   fetch(cloudSync.url, {
     method: 'POST',
-    mode: 'no-cors', // Fundamental para evitar bloqueos de Google
+    mode: 'no-cors',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   }).catch(err => console.log('Sincronización omitida (sin internet)'));
 }
 
-/* ─── IMPORTAR CSV MEJORADO ─── */
+/* ─── IMPORTAR CSV ─── */
 function procesarCSV(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -492,7 +492,7 @@ function updateTaponDisplay() {
 function toggleTapon() {
   if (taponInicio) {
     const diffMin = Math.max(1, Math.round((Date.now() - parseInt(taponInicio)) / 60000));
-    if (confirm(`¿Finalizar prueba de tapón? Se registrará una sesión de ${diffMin} minutos.`)) {
+    if (confirm(`¿Finalizar prueba de tapón? Se registrará una sesión de ${formatMin(diffMin)}.`)) {
       const nuevaSesion = {
         id: Date.now(),
         fecha: keyHoy(),
@@ -505,7 +505,7 @@ function toggleTapon() {
       };
       sesiones.push(nuevaSesion);
       guardar();
-      enviarNube(nuevaSesion); // ENVIAR A DRIVE
+      enviarNube(nuevaSesion);
       taponInicio = null;
       localStorage.removeItem('rehab_tapon_inicio');
       clearInterval(taponInterval);
@@ -569,8 +569,8 @@ function vistaHoy() {
     </div>
     <div class="stat-card">
       <div class="stat-label">Tiempo total</div>
-      <div class="stat-value" style="color:var(--blue)">${totalMin}</div>
-      <div class="stat-sub">minutos</div>
+      <div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div>
+      <div class="stat-sub">registrado</div>
     </div>
   </div>
 
@@ -628,7 +628,7 @@ function vistaHistorial() {
     h += `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:4px">
         <div class="sec-title">${lbl}</div>
-        <div style="font-size:11px;color:var(--muted)">${total} min · ${arr.length} ses.</div>
+        <div style="font-size:11px;color:var(--muted)">${formatMin(total)} · ${arr.length} ses.</div>
       </div>
       <div class="log-list">${arr.map(s => htmlLogItem(s)).join('')}</div>`;
   });
@@ -667,7 +667,7 @@ function vistaResumen() {
   <div style="font-size:22px;font-weight:700">Resumen general</div>
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value" style="color:var(--green)">${total}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Minutos</div><div class="stat-value" style="color:var(--blue)">${totalMin}</div></div>
+    <div class="stat-card"><div class="stat-label">Tiempo Total</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div></div>
   </div>
   <div>
     <div class="sec-title">Detalle por Especialidad</div>
@@ -677,7 +677,7 @@ function vistaResumen() {
     const pct = Math.round(v.min / maxMin * 100);
     h += `
       <div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer">
-        <div class="prog-head"><div class="prog-name">${e.ico} ${e.nombre}</div><div class="prog-val">${v.min} min</div></div>
+        <div class="prog-head"><div class="prog-name">${e.ico} ${e.nombre}</div><div class="prog-val">${formatMin(v.min)}</div></div>
         <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${e.color}"></div></div>
       </div>`;
   });
@@ -715,7 +715,7 @@ function htmlLogItem(s, showDate = false) {
         <div class="log-head"><div class="log-spec" style="color:${e.color}">${e.nombre}</div><div class="log-time">${timeStr}</div></div>
         <div class="log-prof">${profs}</div>
         <div class="log-action">${s.accion || ''}</div>
-        <div class="log-dur">⏱ ${s.duracion || 0} min</div>
+        <div class="log-dur">⏱ ${formatMin(s.duracion || 0)}</div>
         ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
       </div>
       <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
@@ -796,7 +796,7 @@ function guardarSesion() {
   
   sesiones.push(nuevaSesion);
   guardar(); 
-  enviarNube(nuevaSesion); // ENVIAR A DRIVE
+  enviarNube(nuevaSesion);
   closeModal('modal-sesion'); 
   tabActual = 'hoy'; 
   render();
@@ -847,6 +847,16 @@ function removeProf(sid, i) { profesionales[sid].splice(i,1); guardar(); renderC
 function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
 function keyHoy() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+// NUEVO: Función para formatear minutos a horas y minutos
+function formatMin(m) {
+  if (!m || isNaN(m)) return '0 min';
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  if (h === 0) return min + ' min';
+  if (min === 0) return h + 'h';
+  return h + 'h ' + min + 'm';
+}
 
 document.querySelectorAll('.overlay').forEach(ov => {
   ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
