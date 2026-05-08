@@ -239,32 +239,25 @@ select option { background:#1e1e1e; }
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-sesion-title">Nueva Sesión</div>
-
     <label>Profesionales</label>
     <div class="pill-row" id="prof-pills"></div>
-
-    <label>Acción / Actividad · seleccioná una o más</label>
+    <label>Acción / Actividad</label>
     <div class="pill-row" id="action-pills"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <input type="text" id="custom-action" placeholder="Nueva acción (escribir y agregar)…" style="flex:1">
-      <button onclick="agregarAccionPersonalizada()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0">+</button>
+      <input type="text" id="custom-action" placeholder="Nueva acción…">
+      <button onclick="agregarAccionPersonalizada()">+</button>
     </div>
-
     <label>Duración</label>
     <div class="pill-row" id="dur-pills">
-      <span class="pill" onclick="selDur(this,'5')">5 min</span>
-      <span class="pill" onclick="selDur(this,'10')">10 min</span>
-      <span class="pill" onclick="selDur(this,'15')">15 min</span>
-      <span class="pill" onclick="selDur(this,'20')">20 min</span>
-      <span class="pill" onclick="selDur(this,'30')">30 min</span>
-      <span class="pill" onclick="selDur(this,'45')">45 min</span>
-      <span class="pill" onclick="selDur(this,'60')">60 min</span>
+      <span class="pill" onclick="selDur(this,'5')">5m</span>
+      <span class="pill" onclick="selDur(this,'15')">15m</span>
+      <span class="pill" onclick="selDur(this,'30')">30m</span>
+      <span class="pill" onclick="selDur(this,'60')">1h</span>
+      <span class="pill" onclick="selDur(this,'120')">2h</span>
     </div>
-    <input type="number" id="custom-dur" placeholder="Otra duración en minutos…" min="1" max="480">
-
-    <label>Notas (opcional)</label>
-    <textarea id="session-notes" placeholder="Observaciones, tolerancia, evolución…"></textarea>
-
+    <input type="number" id="custom-dur" placeholder="Minutos...">
+    <label>Notas</label>
+    <textarea id="session-notes"></textarea>
     <button class="btn-primary" onclick="guardarSesion()">GUARDAR SESIÓN</button>
     <button class="btn-secondary" onclick="closeModal('modal-sesion')">Cancelar</button>
   </div>
@@ -274,49 +267,32 @@ select option { background:#1e1e1e; }
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Configuración</div>
-    
-    <div class="sec-title" style="color:var(--blue)">Respaldo de Datos (Local)</div>
-    <button class="btn-secondary" onclick="document.getElementById('import-input').click()" style="margin-bottom:20px; border-color:var(--blue)">
-        📥 Restaurar desde archivo CSV
-    </button>
-
-    <div class="sec-title" style="color:var(--green)">Respaldo Automático (Nube)</div>
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:20px;">
-      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; color:var(--text); font-size:13px; text-transform:none; letter-spacing:0; margin-bottom:0;">
-        <input type="checkbox" id="cloud-toggle" onchange="toggleCloudSync()" style="width:20px; height:20px; flex-shrink:0; accent-color:var(--green);">
-        Enviar copias a Google Sheets
+    <button class="btn-secondary" onclick="document.getElementById('import-input').click()">📥 Restaurar CSV</button>
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin:10px 0;">
+      <label style="display:flex; align-items:center; gap:10px; color:var(--text); text-transform:none;">
+        <input type="checkbox" id="cloud-toggle" onchange="toggleCloudSync()"> Google Sheets Sync
       </label>
-      <div id="cloud-url-container" style="display:none; margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">
-        <input type="url" id="cloud-url" placeholder="Pegá aquí el link de tu Web App..." oninput="saveCloudUrl()" style="font-size:12px; padding:10px;">
-        <div style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.4;">
-          Requiere configurar un Script en Google Drive. Si dejás esto apagado, la app sigue funcionando 100% normal.
-        </div>
+      <div id="cloud-url-container" style="display:none; margin-top:10px;">
+        <input type="url" id="cloud-url" placeholder="Link de Web App..." oninput="saveCloudUrl()">
       </div>
     </div>
-
-    <div class="sec-title">Profesionales por Especialidad</div>
-    <div id="config-content" style="display:flex;flex-direction:column;gap:20px"></div>
+    <div id="config-content"></div>
     <button class="btn-primary" onclick="closeModal('modal-config')">LISTO</button>
   </div>
 </div>
 
 <script>
-/* ─── ESPECIALIDADES ─── */
+/* ─── CONSTANTES ─── */
+const ACTION_TAPON = 'Entrenamiento con cánula tapada';
+
 const SPECS = [
-  { id:'kine',  nombre:'Kinesiología',       ico:'🦵', css:'spec-kine',  color:'#60a5fa',
-    acciones:['Ejercicios respiratorios','Movilización pasiva','Movilización activa','Aspiración de secreciones','Fisioterapia torácica','Control de cuff','Deambulación asistida','Técnica de tos asistida'] },
-  { id:'fono',  nombre:'Fonoaudiología',      ico:'🗣️', css:'spec-fono',  color:'#4ade80',
-    acciones:['Evaluación de deglución','Ejercicios vocales','Práctica con válvula','Técnica de habla esofágica','Estimulación oral','Control de mascarilla','Higiene oral','Deglución con cánula'] },
-  { id:'to',    nombre:'Terapia Ocupacional', ico:'🖐️', css:'spec-to',    color:'#c084fc',
-    acciones:['Evaluación funcional','Actividades de vida diaria','Entrenamiento fino','Adaptación del entorno','Ejercicios de mano','Conservación de energía','Uso de dispositivos adaptativos'] },
-  { id:'enf',   nombre:'Enfermería',          ico:'💉', css:'spec-enf',   color:'#facc15',
-    acciones:['Curación traqueotomía','Aspiración de secreciones','Cambio de cánula','Signos vitales','Administración de medicación','Higiene general','Control de herida quirúrgica','Humidificación'] },
-  { id:'cir',   nombre:'Cirugía',             ico:'🏥', css:'spec-cir',   color:'#f87171',
-    acciones:['Revisión de herida','Indicaciones post-op','Control de evolución','Ajuste de tratamiento','Consulta de urgencia','Planificación próxima etapa','Evaluación de decanulación'] },
-  { id:'nut',   nombre:'Nutrición',            ico:'🥗', css:'spec-nut',   color:'#fb923c',
-    acciones:['Evaluación nutricional','Plan alimentario','Control de peso','Ajuste de dieta','Evaluación de deglución segura','Suplementación','Control de hidratación'] },
-  { id:'med',   nombre:'Medicina General',     ico:'🩺', css:'spec-med',   color:'#e2e8f0',
-    acciones:['Consulta de evolución','Control de signos vitales','Ajuste de medicación','Evaluación respiratoria','Indicaciones generales','Alta parcial','Interconsulta'] },
+  { id:'kine',  nombre:'Kinesiología',       ico:'🦵', css:'spec-kine',  color:'#60a5fa', acciones:['Ejercicios respiratorios','Movilización activa','Aspiración'] },
+  { id:'fono',  nombre:'Fonoaudiología',      ico:'🗣️', css:'spec-fono',  color:'#4ade80', acciones:['Evaluación de deglución','Ejercicios vocales','Válvula fonatoria'] },
+  { id:'to',    nombre:'Terapia Ocupacional', ico:'🖐️', css:'spec-to',    color:'#c084fc', acciones:['Actividades vida diaria','Entrenamiento fino'] },
+  { id:'enf',   nombre:'Enfermería',          ico:'💉', css:'spec-enf',   color:'#facc15', acciones:['Curación traqueotomía','Signos vitales'] },
+  { id:'cir',   nombre:'Cirugía',             ico:'🏥', css:'spec-cir',   color:'#f87171', acciones:['Revisión de herida','Control evolución'] },
+  { id:'nut',   nombre:'Nutrición',            ico:'🥗', css:'spec-nut',   color:'#fb923c', acciones:['Plan alimentario','Control peso'] },
+  { id:'med',   nombre:'Medicina General',     ico:'🩺', css:'spec-med',   color:'#e2e8f0', acciones:['Consulta evolución','Ajuste medicación'] },
 ];
 
 /* ─── ESTADO ─── */
@@ -326,11 +302,10 @@ let accionesPersonalizadas = {};
 let cloudSync = { enabled: false, url: '' };
 let specActual = null;
 let durActual = null;
-
-// Cronómetro de Tapón
 let taponInicio = localStorage.getItem('rehab_tapon_inicio') || null;
 let taponInterval = null;
 
+/* ─── CARGAR / GUARDAR ─── */
 function cargar() {
   try {
     const raw = localStorage.getItem('rehab_bitacora_v1');
@@ -341,26 +316,14 @@ function cargar() {
       accionesPersonalizadas = d.accionesPersonalizadas || {};
       cloudSync = d.cloudSync || { enabled: false, url: '' };
     }
-  } catch(e) {
-    sesiones = [];
-  }
+  } catch(e) { sesiones = []; }
   
-  // SANADOR AUTOMÁTICO
+  // Sanador
   sesiones = sesiones.filter(s => s && typeof s === 'object');
-  sesiones.forEach(s => {
-    if (!s.fecha) s.fecha = keyHoy();
-    if (!s.hora) s.hora = '00:00';
-    if (!s.especId) s.especId = 'med';
-    if (!Array.isArray(s.profesionales)) s.profesionales = s.profesional ? [s.profesional] : ['Desconocido'];
-    if (!s.accion) s.accion = 'Registro recuperado';
-    if (!s.duracion || isNaN(s.duracion)) s.duracion = 15;
-  });
-  
   SPECS.forEach(e => {
     if (!profesionales[e.id]) profesionales[e.id] = [];
     if (!accionesPersonalizadas[e.id]) accionesPersonalizadas[e.id] = [];
   });
-  
   guardar();
 }
 
@@ -368,503 +331,239 @@ function guardar() {
   localStorage.setItem('rehab_bitacora_v1', JSON.stringify({ sesiones, profesionales, accionesPersonalizadas, cloudSync }));
 }
 
-/* ─── ENVIAR A GOOGLE SHEETS ─── */
+/* ─── NUBE ─── */
 function enviarNube(sesion) {
   if (!cloudSync.enabled || !cloudSync.url) return;
   const e = SPECS.find(x => x.id === sesion.especId) || { nombre: 'Desconocida' };
-  
   const payload = {
-    fecha: sesion.fecha,
-    hora: sesion.hora,
-    especialidad: e.nombre,
-    profesionales: sesion.profesionales.join(' / '),
-    accion: sesion.accion,
-    duracion: sesion.duracion,
-    notas: sesion.notas || ''
+    fecha: sesion.fecha, hora: sesion.hora, especialidad: (sesion.accion === ACTION_TAPON ? "Prueba de Tapón" : e.nombre),
+    profesionales: sesion.profesionales.join(' / '), accion: sesion.accion, duracion: sesion.duracion, notas: sesion.notes || ''
   };
-
-  fetch(cloudSync.url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(err => console.log('Sincronización omitida (sin internet)'));
+  fetch(cloudSync.url, { method:'POST', mode:'no-cors', body:JSON.stringify(payload) }).catch(e => console.log(e));
 }
 
-/* ─── IMPORTAR CSV ─── */
+/* ─── IMPORTAR ─── */
 function procesarCSV(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
+    const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const text = e.target.result;
-            const lines = text.split(/\r?\n/);
-            if (lines.length < 2) return alert("El archivo parece estar vacío.");
-            
+            const lines = e.target.result.split(/\r?\n/);
             const separator = lines[0].includes(';') ? ';' : ',';
-            let nuevosRegistros = 0;
-            
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                
-                let row = []; let inQuote = false; let current = '';
-                for(let c=0; c < lines[i].length; c++){
-                    let char = lines[i][c];
-                    if(char === '"') inQuote = !inQuote;
-                    else if(char === separator && !inQuote) { row.push(current); current = ''; }
-                    else current += char;
-                }
-                row.push(current);
-                
-                let clean = row.map(v => v.replace(/^"|"$/g, '').trim());
-                if(clean.length < 3) continue;
-                
-                let fecha = clean[0] || keyHoy();
-                let hora = clean[1] || '00:00';
-                let especNombre = clean[2] || '';
-                
-                let spec = SPECS.find(s => s.nombre.toLowerCase() === especNombre.toLowerCase());
-                if (!spec) spec = SPECS.find(s => s.id === 'med'); 
-                
-                let profsRaw = clean[3] || '';
-                let listaProfs = profsRaw.split(' / ').map(p => p.trim()).filter(p => p && p !== 'Desconocido' && p !== 'Registro Automático');
-                
-                if (!profesionales[spec.id]) profesionales[spec.id] = [];
-                listaProfs.forEach(p => {
-                    if (!profesionales[spec.id].includes(p)) {
-                        profesionales[spec.id].push(p);
-                    }
-                });
-                
-                let accion = clean[4] || 'Registro importado';
-                let dur = parseInt(clean[5]) || 15;
-                let notas = clean[6] || '';
-
-                const existe = sesiones.find(s => s.fecha === fecha && s.hora === hora && s.especId === spec.id);
-                if (existe) continue;
-
+                let clean = lines[i].split(separator).map(v => v.replace(/^"|"$/g, '').trim());
+                let spec = SPECS.find(s => s.nombre.toLowerCase() === (clean[2]||'').toLowerCase()) || {id:'med'};
                 sesiones.push({
-                    id: Date.now() + i, 
-                    fecha: fecha,
-                    hora: hora,
-                    especId: spec.id,
-                    profesionales: listaProfs.length > 0 ? listaProfs : ['Desconocido'],
-                    accion: accion,
-                    duracion: dur,
-                    notas: notas || null
+                    id: Date.now()+i, fecha: clean[0], hora: clean[1], especId: spec.id,
+                    profesionales: (clean[3]||'').split('/').map(p=>p.trim()),
+                    accion: clean[4], duracion: parseInt(clean[5])||15, notas: clean[6]||null
                 });
-                nuevosRegistros++;
             }
-
-            if (nuevosRegistros > 0 || true) {
-                guardar();
-                alert(`¡Éxito! Se han procesado los datos.\nSe recuperaron las sesiones y se reconstruyó la lista de profesionales.`);
-                render();
-            }
-        } catch(error) {
-            alert('Hubo un error al leer el archivo.');
-        }
-        event.target.value = ''; 
+            guardar(); render(); alert('Datos restaurados.');
+        } catch(err) { alert('Error al leer CSV'); }
     };
     reader.readAsText(file);
 }
 
-/* ─── CRONÓMETRO TAPÓN ─── */
+/* ─── CRONÓMETRO ─── */
 function updateTaponDisplay() {
   if (!taponInicio || tabActual !== 'hoy') return;
-  const now = Date.now();
-  const diff = now - parseInt(taponInicio);
-  const totalSegundos = Math.floor(diff / 1000);
-  const h = Math.floor(totalSegundos / 3600) || 0;
-  const m = Math.floor((totalSegundos % 3600) / 60) || 0;
-  const s = totalSegundos % 60 || 0;
-
-  const timeStr = (h > 0 ? String(h).padStart(2,'0')+':' : '') +
-                  String(m).padStart(2,'0') + ':' +
-                  String(s).padStart(2,'0');
-
-  const elTime = document.getElementById('tapon-time');
-  if (elTime) elTime.textContent = timeStr;
+  const diff = Date.now() - parseInt(taponInicio);
+  const s = Math.floor(diff/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const seg = s%60;
+  const txt = (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(seg).padStart(2,'0');
+  const el = document.getElementById('tapon-time'); if(el) el.textContent = txt;
 }
 
 function toggleTapon() {
   if (taponInicio) {
-    const diffMin = Math.max(1, Math.round((Date.now() - parseInt(taponInicio)) / 60000));
-    if (confirm(`¿Finalizar prueba de tapón? Se registrará una sesión de ${formatMin(diffMin)}.`)) {
-      const nuevaSesion = {
-        id: Date.now(),
-        fecha: keyHoy(),
-        hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
-        especId: 'fono',
-        profesionales: ['Registro Automático'],
-        accion: 'Entrenamiento con cánula tapada',
-        duracion: diffMin,
-        notas: 'Prueba de tolerancia cronometrada.'
+    const min = Math.max(1, Math.round((Date.now()-parseInt(taponInicio))/60000));
+    if (confirm(`¿Finalizar prueba de tapón de ${formatMin(min)}?`)) {
+      const s = {
+        id: Date.now(), fecha: keyHoy(), hora: new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
+        especId: 'fono', profesionales: ['Auto-Registro'], accion: ACTION_TAPON, duracion: min, notas: 'Prueba cronometrada'
       };
-      sesiones.push(nuevaSesion);
-      guardar();
-      enviarNube(nuevaSesion);
-      taponInicio = null;
-      localStorage.removeItem('rehab_tapon_inicio');
-      clearInterval(taponInterval);
-      render();
+      sesiones.push(s); guardar(); enviarNube(s);
+      taponInicio = null; localStorage.removeItem('rehab_tapon_inicio');
+      clearInterval(taponInterval); render();
     }
   } else {
-    taponInicio = Date.now();
-    localStorage.setItem('rehab_tapon_inicio', taponInicio);
-    render();
-    taponInterval = setInterval(updateTaponDisplay, 1000);
-    updateTaponDisplay();
+    taponInicio = Date.now(); localStorage.setItem('rehab_tapon_inicio', taponInicio);
+    render(); taponInterval = setInterval(updateTaponDisplay, 1000);
   }
 }
 
-/* ─── TAB ─── */
+/* ─── RENDER ─── */
 let tabActual = 'hoy';
-function switchTab(tab, btn) {
-  tabActual = tab;
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  if (tab === 'nueva') { abrirSelectorSpec(); return; }
+function switchTab(t, b) {
+  tabActual = t;
+  document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
+  if(b) b.classList.add('active');
+  if(t === 'nueva') { abrirSelectorSpec(); return; }
   render();
 }
 
 function render() {
   const app = document.getElementById('app');
-  try {
-    if (tabActual === 'hoy') {
-      app.innerHTML = vistaHoy();
-      if (taponInicio) updateTaponDisplay();
-    }
-    if (tabActual === 'historial') app.innerHTML = vistaHistorial();
-    if (tabActual === 'resumen')   app.innerHTML = vistaResumen();
-  } catch(e) {
-    app.innerHTML = `<div class="empty-state">Recargá la página para ver los cambios.</div>`;
-  }
+  if (tabActual === 'hoy') { app.innerHTML = vistaHoy(); if(taponInicio) updateTaponDisplay(); }
+  else if (tabActual === 'historial') app.innerHTML = vistaHistorial();
+  else if (tabActual === 'resumen') app.innerHTML = vistaResumen();
 }
 
-/* ─── VISTA HOY ─── */
 function vistaHoy() {
   const hoy = keyHoy();
   const sesHoy = sesiones.filter(s => s.fecha === hoy);
-  const totalMin = sesHoy.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
-
-  const d = new Date();
-  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const fechaStr = `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}`;
-
+  const totalMin = sesHoy.reduce((a,s) => a + s.duracion, 0);
   let h = `
-  <div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${fechaStr}</div>
-    <div style="font-size:22px;font-weight:700">Registro de hoy</div>
-  </div>
-
   <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">Sesiones</div>
-      <div class="stat-value" style="color:var(--green)">${sesHoy.length}</div>
-      <div class="stat-sub">hoy</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Tiempo total</div>
-      <div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div>
-      <div class="stat-sub">registrado</div>
-    </div>
-  </div>
-
-  <div>
-    <div class="sec-title">Especialidades · toca para registrar</div>
-    <div class="spec-grid">`;
-
-  SPECS.forEach(e => {
-    const cnt = sesHoy.filter(s => s.especId === e.id).length;
-    h += `
-      <div class="spec-card ${e.css} ${cnt > 0 ? 'active-spec' : ''}" onclick="abrirSesion('${e.id}')">
-        <div class="spec-ico">${e.ico}</div>
-        <div class="spec-name">${e.nombre}</div>
-        <div class="spec-count">${cnt > 0 ? cnt + ' ses.' : 'Sin sesiones'}</div>
-      </div>`;
-  });
-
-  h += `
-      <div class="spec-card" id="card-tapon" onclick="toggleTapon()" style="border-color:${taponInicio ? 'var(--green)' : 'var(--border)'}; background:${taponInicio ? 'var(--card2)' : 'var(--card)'}">
-        <div class="spec-ico">${taponInicio ? '⏱️' : '🫁'}</div>
-        <div class="spec-name" id="tapon-title" style="${taponInicio ? 'color:var(--green)' : ''}">${taponInicio ? 'Tapón Activo' : 'Prueba Tapón'}</div>
-        <div class="spec-count" id="tapon-time" style="${taponInicio ? 'color:var(--green); font-weight:bold;' : ''}">${taponInicio ? '...' : 'Tocar para iniciar'}</div>
-      </div>`;
-
-  h += `</div></div>`;
-
-  if (sesHoy.length > 0) {
-    h += `<div><div class="sec-title">Sesiones de hoy</div><div class="log-list">`;
-    [...sesHoy].reverse().forEach(s => { h += htmlLogItem(s); });
-    h += `</div></div>`;
-  } else {
-    h += `<div class="empty-state"><div class="empty-ico">📋</div>No hay sesiones hoy.<br>Tocá una especialidad para empezar.</div>`;
-  }
-  return h;
-}
-
-/* ─── VISTA HISTORIAL ─── */
-function vistaHistorial() {
-  if (sesiones.length === 0) return `<div class="empty-state">Aún no hay sesiones registradas.</div>`;
-
-  const porFecha = {};
-  [...sesiones].reverse().forEach(s => {
-    if (!porFecha[s.fecha]) porFecha[s.fecha] = [];
-    porFecha[s.fecha].push(s);
-  });
-
-  const mesesCortos = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  let h = `<button class="btn-secondary" onclick="exportarCSV()">📥 Exportar historial CSV</button>`;
-  Object.entries(porFecha).forEach(([fecha, arr]) => {
-    const partes = String(fecha).split('-');
-    if(partes.length < 3) return;
-    const [y,m,d] = partes;
-    const lbl = `${parseInt(d)} ${mesesCortos[parseInt(m)-1]} ${y}`;
-    const total = arr.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
-    h += `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:4px">
-        <div class="sec-title">${lbl}</div>
-        <div style="font-size:11px;color:var(--muted)">${formatMin(total)} · ${arr.length} ses.</div>
-      </div>
-      <div class="log-list">${arr.map(s => htmlLogItem(s)).join('')}</div>`;
-  });
-  return h;
-}
-
-function exportarCSV() {
-  if (sesiones.length === 0) { alert('No hay sesiones.'); return; }
-  const header = ['Fecha','Hora','Especialidad','Profesionales','Acciones','Duración (min)','Notas'];
-  const rows = sesiones.map(s => {
-    const e = SPECS.find(x => x.id === s.especId) || { nombre: 'Desconocida' };
-    const profs = Array.isArray(s.profesionales) ? s.profesionales.join(' / ') : (s.profesional || '');
-    return [s.fecha, s.hora, e.nombre, profs, s.accion, s.duracion, s.notas || ''].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',');
-  });
-  const csv = [header.join(','), ...rows].join('\n');
-  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `bitacora-rehab-${keyHoy()}.csv`;
-  a.click(); URL.revokeObjectURL(url);
-}
-
-/* ─── VISTA RESUMEN ─── */
-function vistaResumen() {
-  const total = sesiones.length;
-  const totalMin = sesiones.reduce((a,s) => a + (parseInt(s.duracion)||0), 0);
-  const dias = new Set(sesiones.map(s => s.fecha)).size;
-  const bySpec = {};
-  SPECS.forEach(e => { bySpec[e.id] = {count:0, min:0}; });
-  sesiones.forEach(s => { 
-    if(bySpec[s.especId]){ bySpec[s.especId].count++; bySpec[s.especId].min += (parseInt(s.duracion)||0); }
-  });
-  const maxMin = Math.max(...Object.values(bySpec).map(v => v.min), 1);
-
-  let h = `
-  <div style="font-size:22px;font-weight:700">Resumen general</div>
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value" style="color:var(--green)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Sesiones</div><div class="stat-value" style="color:var(--green)">${sesHoy.length}</div></div>
     <div class="stat-card"><div class="stat-label">Tiempo Total</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div></div>
   </div>
-  <div>
-    <div class="sec-title">Detalle por Especialidad</div>
-    <div class="card"><div class="progress-row">`;
+  <div class="spec-grid">`;
   SPECS.forEach(e => {
-    const v = bySpec[e.id];
-    const pct = Math.round(v.min / maxMin * 100);
-    h += `
-      <div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer">
-        <div class="prog-head"><div class="prog-name">${e.ico} ${e.nombre}</div><div class="prog-val">${formatMin(v.min)}</div></div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${e.color}"></div></div>
-      </div>`;
+    const cnt = sesHoy.filter(s => s.especId === e.id).length;
+    h += `<div class="spec-card ${e.css} ${cnt>0?'active-spec':''}" onclick="abrirSesion('${e.id}')">
+      <div class="spec-ico">${e.ico}</div><div class="spec-name">${e.nombre}</div><div class="spec-count">${cnt>0?cnt+' ses.':'---'}</div>
+    </div>`;
   });
-  h += `</div></div></div>`;
+  h += `<div class="spec-card" onclick="toggleTapon()" style="border-color:${taponInicio?'var(--green)':'var(--border)'}">
+    <div class="spec-ico">⏱️</div><div class="spec-name">${taponInicio?'Tapón Activo':'Prueba Tapón'}</div><div class="spec-count" id="tapon-time">00:00</div>
+  </div></div>`;
+  if(sesHoy.length > 0) h += `<div class="log-list" style="margin-top:10px">${sesHoy.reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
   return h;
 }
 
-function verDetalleEspecialidad(specId) {
-  const e = SPECS.find(x => x.id === specId);
-  document.getElementById('modal-detalle-title').innerHTML = `${e.ico} Historial de ${e.nombre}`;
-  let sesEspec = sesiones.filter(s => s.especId === specId);
-  sesEspec.sort((a, b) => {
-    const dateA = new Date(`${a.fecha}T${String(a.hora).padStart(5,'0')}`);
-    const dateB = new Date(`${b.fecha}T${String(b.hora).padStart(5,'0')}`);
-    return dateB - dateA;
+function vistaHistorial() {
+  const porF = {}; sesiones.forEach(s => { if(!porF[s.fecha]) porF[s.fecha]=[]; porF[s.fecha].push(s); });
+  let h = `<button class="btn-secondary" onclick="exportarCSV()">📥 Exportar CSV</button>`;
+  Object.keys(porF).sort().reverse().forEach(f => {
+    const t = porF[f].reduce((a,s)=>a+s.duracion,0);
+    h += `<div class="sec-title" style="margin-top:15px">${f} · ${formatMin(t)}</div>
+    <div class="log-list">${porF[f].reverse().map(s=>htmlLogItem(s)).join('')}</div>`;
   });
+  return h;
+}
+
+/* ─── RESUMEN (MODIFICADO) ─── */
+function vistaResumen() {
+  const stats = { tapon: {count:0, min:0} };
+  SPECS.forEach(e => stats[e.id] = {count:0, min:0});
+  
+  sesiones.forEach(s => {
+    if (s.accion === ACTION_TAPON) {
+      stats.tapon.count++;
+      stats.tapon.min += s.duracion;
+    } else if (stats[s.especId]) {
+      stats[s.especId].count++;
+      stats[s.especId].min += s.duracion;
+    }
+  });
+
+  const totalMin = sesiones.reduce((a,s) => a + s.duracion, 0);
+  const maxM = Math.max(...Object.values(stats).map(v => v.min), 1);
+
+  let h = `
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Sesiones</div><div class="stat-value">${sesiones.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Tiempo Acumulado</div><div class="stat-value" style="color:var(--blue)">${formatMin(totalMin)}</div></div>
+  </div>
+  <div class="card" style="margin-top:10px"><div class="progress-row">
+    <div class="prog-item" onclick="verDetalleEspecialidad('tapon_especial')" style="cursor:pointer">
+      <div class="prog-head"><div class="prog-name">⏱️ Prueba de Tapón</div><div class="prog-val">${formatMin(stats.tapon.min)}</div></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${(stats.tapon.min/maxM)*100}%; background:var(--green)"></div></div>
+    </div>`;
+
+  SPECS.forEach(e => {
+    const v = stats[e.id];
+    h += `<div class="prog-item" onclick="verDetalleEspecialidad('${e.id}')" style="cursor:pointer">
+      <div class="prog-head"><div class="prog-name">${e.ico} ${e.nombre}</div><div class="prog-val">${formatMin(v.min)}</div></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${(v.min/maxM)*100}%; background:${e.color}"></div></div>
+    </div>`;
+  });
+  h += `</div></div>`;
+  return h;
+}
+
+function verDetalleEspecialidad(id) {
   const cont = document.getElementById('modal-detalle-content');
-  cont.innerHTML = sesEspec.length === 0 ? '<div class="empty-state">No hay registros.</div>' : sesEspec.map(s => htmlLogItem(s, true)).join('');
+  let list = [];
+  if (id === 'tapon_especial') {
+    document.getElementById('modal-detalle-title').textContent = "Historial: Pruebas de Tapón";
+    list = sesiones.filter(s => s.accion === ACTION_TAPON);
+  } else {
+    const e = SPECS.find(x => x.id === id);
+    document.getElementById('modal-detalle-title').textContent = "Historial: " + e.nombre;
+    list = sesiones.filter(s => s.especId === id && s.accion !== ACTION_TAPON);
+  }
+  cont.innerHTML = list.reverse().map(s => htmlLogItem(s, true)).join('');
   openModal('modal-detalle');
 }
 
-/* ─── LOG ITEM ─── */
-function htmlLogItem(s, showDate = false) {
-  const e = SPECS.find(x => x.id === s.especId) || { ico:'❓', nombre:'Especialidad', color:'#ffffff' };
-  const profs = Array.isArray(s.profesionales) ? s.profesionales.join(', ') : (s.profesional || 'Desconocido');
-  let timeStr = String(s.hora);
-  if (showDate && s.fecha) {
-    const p = String(s.fecha).split('-');
-    if(p.length === 3) timeStr = `${p[2]}/${p[1]}/${p[0]} - ${timeStr}`;
-  }
-  return `
-    <div class="log-item">
-      <div class="log-ico">${e.ico}</div>
-      <div class="log-body">
-        <div class="log-head"><div class="log-spec" style="color:${e.color}">${e.nombre}</div><div class="log-time">${timeStr}</div></div>
-        <div class="log-prof">${profs}</div>
-        <div class="log-action">${s.accion || ''}</div>
-        <div class="log-dur">⏱ ${formatMin(s.duracion || 0)}</div>
-        ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
+/* ─── UTILS ─── */
+function formatMin(m) {
+  const h = Math.floor(m/60); const min = m%60;
+  if(h===0) return min+'m';
+  return h+'h'+(min>0?' '+min+'m':'');
+}
+function htmlLogItem(s, showDate=false) {
+  const e = SPECS.find(x => x.id === s.especId) || {ico:'?', color:'#fff', nombre:'---'};
+  return `<div class="log-item">
+    <div class="log-ico">${s.accion === ACTION_TAPON ? '⏱️' : e.ico}</div>
+    <div class="log-body">
+      <div class="log-head">
+        <div class="log-spec" style="color:${s.accion === ACTION_TAPON ? 'var(--green)' : e.color}">${s.accion === ACTION_TAPON ? 'Tapón' : e.nombre}</div>
+        <div class="log-time">${showDate?s.fecha+' ':''}${s.hora}</div>
       </div>
-      <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
-    </div>`;
+      <div class="log-prof">${s.profesionales.join(', ')}</div>
+      <div class="log-action">${s.accion}</div>
+      <div class="log-dur">⏱ ${formatMin(s.duracion)}</div>
+    </div>
+    <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
+  </div>`;
 }
+function keyHoy() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function borrarSesion(id) { if(confirm('¿Eliminar?')){ sesiones=sesiones.filter(s=>s.id!==id); guardar(); render(); } }
 
-function borrarSesion(id) {
-  if (!confirm('¿Eliminar?')) return;
-  sesiones = sesiones.filter(s => s.id !== id);
-  guardar(); render();
-}
-
-/* ─── MODALES Y FORM ─── */
-function abrirSelectorSpec() {
-  const grid = document.getElementById('spec-grid-picker');
-  grid.innerHTML = SPECS.map(e => `
-    <div class="spec-card ${e.css}" onclick="pickSpec('${e.id}')">
-      <div class="spec-ico">${e.ico}</div>
-      <div class="spec-name">${e.nombre}</div>
-    </div>`).join('');
-  openModal('modal-spec');
-}
-
+/* ─── FORMULARIO ─── */
+function abrirSelectorSpec() { openModal('modal-spec'); }
 function pickSpec(id) { closeModal('modal-spec'); abrirSesion(id); }
-
-function abrirSesion(specId) {
-  specActual = specId; durActual = null;
-  const e = SPECS.find(x => x.id === specId);
-  document.getElementById('modal-sesion-title').textContent = `${e.ico} ${e.nombre}`;
-  const profPills = document.getElementById('prof-pills');
-  const profs = profesionales[specId] || [];
-  profPills.innerHTML = profs.length === 0 ? `<span style="font-size:12px;color:var(--muted)">Sin profesionales.</span>` : profs.map(p => `<span class="pill" onclick="this.classList.toggle('sel')">${p}</span>`).join('');
-  renderActionPills(specId);
-  document.getElementById('custom-action').value = '';
-  document.getElementById('custom-dur').value = '';
-  document.getElementById('session-notes').value = '';
-  document.querySelectorAll('#dur-pills .pill').forEach(p => p.classList.remove('sel'));
+function abrirSesion(id) {
+  specActual = id; const e = SPECS.find(x => x.id === id);
+  document.getElementById('modal-sesion-title').textContent = e.nombre;
+  document.getElementById('prof-pills').innerHTML = profesionales[id].map(p => `<span class="pill" onclick="this.classList.toggle('sel')">${p}</span>`).join('');
+  document.getElementById('action-pills').innerHTML = [...e.acciones, ...(accionesPersonalizadas[id]||[])].map(a => `<span class="pill" onclick="this.classList.toggle('sel')">${a}</span>`).join('');
   openModal('modal-sesion');
 }
-
-function renderActionPills(specId) {
-  const e = SPECS.find(x => x.id === specId);
-  const custom = Array.isArray(accionesPersonalizadas[specId]) ? accionesPersonalizadas[specId] : [];
-  const todas = [...e.acciones, ...custom];
-  document.getElementById('action-pills').innerHTML = todas.map(a => `<span class="pill" onclick="this.classList.toggle('sel')">${a}</span>`).join('');
-}
-
-function agregarAccionPersonalizada() {
-  const inp = document.getElementById('custom-action');
-  const nueva = inp.value.trim();
-  if (!nueva) return;
-  if (!accionesPersonalizadas[specActual]) accionesPersonalizadas[specActual] = [];
-  if (!accionesPersonalizadas[specActual].includes(nueva)) {
-    accionesPersonalizadas[specActual].push(nueva);
-    guardar();
-  }
-  inp.value = ''; renderActionPills(specActual);
-}
-
-function selDur(el, val) {
-  document.querySelectorAll('#dur-pills .pill').forEach(p => p.classList.remove('sel'));
-  el.classList.add('sel'); durActual = val;
-  document.getElementById('custom-dur').value = '';
-}
-
+function selDur(el, v) { document.querySelectorAll('#dur-pills .pill').forEach(p=>p.classList.remove('sel')); el.classList.add('sel'); durActual = v; }
 function guardarSesion() {
-  const profs = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(p => p.textContent);
-  const acts = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(p => p.textContent);
-  const dur = parseInt(durActual || document.getElementById('custom-dur').value || '0');
-  if (acts.length === 0 || dur < 1) { alert('Faltan datos.'); return; }
-  
-  const nuevaSesion = {
-    id: Date.now(), fecha: keyHoy(),
-    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
-    especId: specActual, profesionales: profs.length > 0 ? profs : ['Desconocido'],
-    accion: acts.join(' · '), duracion: dur, notas: document.getElementById('session-notes').value.trim() || null,
-  };
-  
-  sesiones.push(nuevaSesion);
-  guardar(); 
-  enviarNube(nuevaSesion);
-  closeModal('modal-sesion'); 
-  tabActual = 'hoy'; 
-  render();
+  const p = Array.from(document.querySelectorAll('#prof-pills .pill.sel')).map(x=>x.textContent);
+  const a = Array.from(document.querySelectorAll('#action-pills .pill.sel')).map(x=>x.textContent);
+  const d = parseInt(durActual || document.getElementById('custom-dur').value);
+  if(!a.length || !d) return alert('Faltan datos');
+  const s = { id:Date.now(), fecha:keyHoy(), hora:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}), especId:specActual, profesionales:p, accion:a.join(' · '), duracion:d, notas:document.getElementById('session-notes').value };
+  sesiones.push(s); guardar(); enviarNube(s); closeModal('modal-sesion'); switchTab('hoy');
 }
 
-/* ─── CONFIG & CLOUD SYNC ─── */
-function openConfig() { 
-  renderConfig(); 
-  document.getElementById('cloud-toggle').checked = cloudSync.enabled;
-  document.getElementById('cloud-url').value = cloudSync.url;
-  document.getElementById('cloud-url-container').style.display = cloudSync.enabled ? 'block' : 'none';
-  openModal('modal-config'); 
-}
-
-function toggleCloudSync() {
-  cloudSync.enabled = document.getElementById('cloud-toggle').checked;
-  document.getElementById('cloud-url-container').style.display = cloudSync.enabled ? 'block' : 'none';
-  guardar();
-}
-
-function saveCloudUrl() {
-  cloudSync.url = document.getElementById('cloud-url').value.trim();
-  guardar();
-}
-
-function renderConfig() {
-  const cont = document.getElementById('config-content');
-  cont.innerHTML = '';
+/* ─── CONFIG ─── */
+function openConfig() {
+  const c = document.getElementById('config-content'); c.innerHTML = '';
   SPECS.forEach(e => {
-    const block = document.createElement('div');
-    block.className = 'cfg-spec-block';
-    const profs = profesionales[e.id] || [];
-    block.innerHTML = `
-      <div class="cfg-spec-title">${e.ico} ${e.nombre}</div>
-      <div class="cfg-prof-list">${profs.map((p,i) => `<div class="cfg-prof-row"><div class="cfg-prof-name">${p}</div><button class="cfg-prof-del" onclick="removeProf('${e.id}',${i})">×</button></div>`).join('')}</div>
-      <div class="cfg-add-row"><input type="text" id="addprof-${e.id}" placeholder="Nombre..."><button class="cfg-add-btn" onclick="addProf('${e.id}')">+</button></div>`;
-    cont.appendChild(block);
+    c.innerHTML += `<div class="cfg-spec-block"><div class="cfg-spec-title">${e.nombre}</div>
+    <div class="cfg-add-row"><input id="in-${e.id}"><button onclick="addP('${e.id}')">+</button></div>
+    <div>${profesionales[e.id].map((p,i)=>`<span>${p} <button onclick="delP('${e.id}',${i})">x</button></span>`).join(' ')}</div></div>`;
   });
+  openModal('modal-config');
 }
-function addProf(sid) {
-  const inp = document.getElementById(`addprof-${sid}`);
-  const n = inp.value.trim(); if(!n) return;
-  profesionales[sid].push(n); guardar(); renderConfig();
-}
-function removeProf(sid, i) { profesionales[sid].splice(i,1); guardar(); renderConfig(); }
+function addP(id){ const v = document.getElementById('in-'+id).value; if(v){profesionales[id].push(v); guardar(); openConfig();} }
+function delP(id, i){ profesionales[id].splice(i,1); guardar(); openConfig(); }
 
-/* ─── UTILS ─── */
-function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
-function keyHoy() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-
-// NUEVO: Función para formatear minutos a horas y minutos
-function formatMin(m) {
-  if (!m || isNaN(m)) return '0 min';
-  const h = Math.floor(m / 60);
-  const min = m % 60;
-  if (h === 0) return min + ' min';
-  if (min === 0) return h + 'h';
-  return h + 'h ' + min + 'm';
-}
-
-document.querySelectorAll('.overlay').forEach(ov => {
-  ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
-});
-
-/* ─── INIT ─── */
 cargar();
-if (taponInicio) taponInterval = setInterval(updateTaponDisplay, 1000);
+if(taponInicio) taponInterval = setInterval(updateTaponDisplay, 1000);
 render();
 </script>
 </body>
