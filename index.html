@@ -17,6 +17,7 @@
 :root {
   --bg:#111111; --card:#1e1e1e; --card2:#252525; --border:#2e2e2e;
   --text:#ffffff; --muted:#777777; --muted2:#444444;
+  --text-bright: #bbbbbb; /* NUEVO COLOR GRIS BRILLANTE PARA LECTURA */
   --green:#4ade80; --green-dim:#14532d;
   --yellow:#facc15; --blue:#60a5fa; --blue-dim:#1e3a5f;
   --purple:#c084fc; --orange:#fb923c; --red:#f87171;
@@ -38,9 +39,12 @@ header {
 }
 header .header-btns { display: flex; gap: 8px; }
 header h1 { font-size:13px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; }
+
+/* BOTONES DEL HEADER */
 .btn-head {
   background:var(--card); border:1px solid var(--border);
-  border-radius:9px; padding:6px 10px; font-size:18px; cursor:pointer;
+  border-radius:9px; width:38px; height:38px; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
 }
 
 /* NAV */
@@ -61,8 +65,10 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 
 /* SEC TITLE */
 .sec-title {
-  font-size:11px; font-weight:600; letter-spacing:.15em;
-  text-transform:uppercase; color:var(--muted); margin-bottom:4px;
+  font-size:12px; /* Subido 1px */
+  font-weight:600; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--text-bright); /* Más brillante */
+  margin-bottom:4px;
 }
 
 /* CARD & GRID */
@@ -95,14 +101,25 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .stat-label { font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
 .stat-value { font-size:24px; font-weight:700; }
 
-/* LOGS */
+/* LOGS (HISTORIAL) - DISEÑO MEJORADO PARA ACCESIBILIDAD */
 .log-list { display:flex; flex-direction:column; gap:8px; }
-.log-item { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; display:flex; gap:12px; }
-.log-body { flex:1; display:flex; flex-direction:column; gap:3px; }
+.log-item { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; gap:12px; }
+.log-body { flex:1; display:flex; flex-direction:column; gap:4px; }
 .log-head { display:flex; justify-content:space-between; align-items:center; }
-.log-spec { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
-.log-dur { font-size:12px; color:var(--green); font-weight:600; }
-.log-delete { background:none; border:none; color:var(--muted2); font-size:20px; cursor:pointer; }
+.log-spec { font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+.log-time { font-size:13px; color:var(--text-bright); } /* Letra más grande y clara */
+.log-prof { font-size:16px; font-weight:600; color:var(--text); } /* Aumentado a 16px */
+.log-action { font-size:14px; color:var(--text); line-height: 1.3; } /* Blanco puro, tamaño 14px */
+.log-dur { font-size:14px; color:var(--green); font-weight:600; margin-top:2px; } /* Más grande */
+.log-notes { 
+  font-size:14px; 
+  color:var(--text-bright); /* Gris muy brillante */
+  margin-top:6px; 
+  border-top:1px solid var(--border); 
+  padding-top:8px; 
+  line-height:1.5; /* Más espacio entre renglones */
+}
+.log-delete { background:none; border:none; color:var(--muted2); font-size:22px; cursor:pointer; }
 
 /* TAPON CIRCLE */
 .tapon-circle-container { display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:16px; }
@@ -129,13 +146,13 @@ main { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
 .guide-item { display: flex; gap: 15px; background: var(--card2); padding: 15px; border-radius: 12px; border-left: 4px solid var(--blue); }
 .guide-ico { font-size: 24px; flex-shrink: 0; }
 .guide-text h4 { font-size: 14px; margin-bottom: 4px; color: var(--text); }
-.guide-text p { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.guide-text p { font-size: 13px; color: var(--text-bright); line-height: 1.4; } /* Aclarado el texto de ayuda también */
 
 /* FORMS */
-label { font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
+label { font-size:11px; color:var(--text-bright); letter-spacing:.1em; text-transform:uppercase; }
 input, textarea, select { background:var(--card); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:13px 14px; font-size:15px; width:100%; outline:none; }
 .pill-row { display:flex; flex-wrap:wrap; gap:8px; }
-.pill { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; }
+.pill { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; } /* Pills un poquito más grandes */
 .pill.sel { background:var(--green); border-color:var(--green); color:#000; }
 .btn-primary { background:var(--green); color:#000; border:none; border-radius:12px; padding:15px; font-size:14px; font-weight:700; text-transform:uppercase; width:100%; cursor:pointer; }
 .btn-secondary { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:13px; font-size:13px; width:100%; cursor:pointer; }
@@ -147,7 +164,7 @@ input, textarea, select { background:var(--card); border:1px solid var(--border)
   <span class="ico">🫁</span>
   <h1>Bitácora · Rehab</h1>
   <div class="header-btns">
-   <button class="btn-head" onclick="openModal('modal-ayuda')">❔</button>
+    <button class="btn-head" onclick="openModal('modal-ayuda')" style="color:var(--muted); font-weight:800; font-family:sans-serif;">?</button>
     <button class="btn-head" onclick="openConfig()">⚙️</button>
   </div>
 </header>
@@ -172,7 +189,7 @@ input, textarea, select { background:var(--card); border:1px solid var(--border)
       <div class="guide-ico">⚙️</div>
       <div class="guide-text">
         <h4>1. Cargá a tus profesionales</h4>
-        <p>Antes de empezar, o a medida que vas conociendéndolos tocá el engranaje <b>⚙️</b> y agregá los nombres de quienes te atienden en cada especialidad.</p>
+        <p>Antes de empezar, o a medida que vas conociéndolos, tocá el engranaje <b>⚙️</b> y agregá los nombres de quienes te atienden en cada especialidad.</p>
       </div>
     </div>
 
@@ -180,7 +197,7 @@ input, textarea, select { background:var(--card); border:1px solid var(--border)
       <div class="guide-ico">📝</div>
       <div class="guide-text">
         <h4>2. Registrá tu actividad</h4>
-        <p>Tocá la especialidad (ej: 🦵 Kine) para anotar qué hicieron y cuánto duró. Podés agregar otras acciones qee no estén en la lista y también comentarios Todo queda guardado en tu historial.</p>
+        <p>Tocá la especialidad (ej: 🦵 Kine) para anotar qué hicieron y cuánto duró. Podés agregar otras acciones que no estén en la lista y también comentarios. Todo queda guardado en tu historial.</p>
       </div>
     </div>
 
@@ -416,10 +433,25 @@ function vistaResumen() {
 
 function formatMin(m) { const h = Math.floor(m/60), min = m%60; return h===0 ? min+'m' : h+'h'+(min>0?' '+min+'m':''); }
 function keyHoy() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
 function htmlLogItem(s) {
   const e = SPECS.find(x => x.id === s.especId) || {ico:'?', color:'#fff', nombre:'---'};
-  return `<div class="log-item"><div class="log-ico">${s.accion === ACTION_TAPON ? '⏱️' : e.ico}</div><div class="log-body"><div class="log-head"><div class="log-spec" style="color:${s.accion===ACTION_TAPON?'var(--green)':e.color}">${s.accion===ACTION_TAPON?'Tapón':e.nombre}</div><div class="log-time">${s.hora}</div></div><div class="log-prof">${s.profesionales.join(', ')}</div><div class="log-action">${s.accion}</div><div class="log-dur">⏱ ${formatMin(s.duracion)}</div></div><button class="log-delete" onclick="borrarSesion(${s.id})">×</button></div>`;
+  return `<div class="log-item">
+    <div class="log-ico">${s.accion === ACTION_TAPON ? '⏱️' : e.ico}</div>
+    <div class="log-body">
+      <div class="log-head">
+        <div class="log-spec" style="color:${s.accion===ACTION_TAPON?'var(--green)':e.color}">${s.accion===ACTION_TAPON?'Tapón':e.nombre}</div>
+        <div class="log-time">${s.hora}</div>
+      </div>
+      <div class="log-prof">${s.profesionales.join(', ')}</div>
+      <div class="log-action">${s.accion}</div>
+      <div class="log-dur">⏱ ${formatMin(s.duracion)}</div>
+      ${s.notas ? `<div class="log-notes">${s.notas}</div>` : ''}
+    </div>
+    <button class="log-delete" onclick="borrarSesion(${s.id})">×</button>
+  </div>`;
 }
+
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function borrarSesion(id) { if(confirm('¿Eliminar?')){ sesiones=sesiones.filter(s=>s.id!==id); guardar(); render(); } }
